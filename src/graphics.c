@@ -1,6 +1,6 @@
 
-#include <groubiks/graphics/graphics.h>
-#include <vulkan/vulkan_core.h>
+#include "groubiks/config.h"
+#include <groubiks/graphics.h>
 
 define_vector(VkPhysicalDevice);
 

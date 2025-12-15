@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.30.0)
 
+set(CMAKE_C_STANDARD 23)
+
 project(groubiks)
 
 set(GROUBIKS_SOURCES
-    main.c
-    graphics.c)
+    "main.c"
+    "log.c"
+    "graphics.c")
 
 set(GROUBIKS_INCLUDE_DIR
     "../include")

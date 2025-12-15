@@ -23,6 +23,7 @@
 
 #define vector_front(type, vec_ptr) (*vec_ptr).data[0]
 #define vector_back(type, vec_ptr) (*vec_ptr).data[(*vec_ptr).size - 1]
+#define vector_at(type, vec_ptr, i) (*vec_ptr).data[i]
 
 #define vector_push_back(type, vec_ptr, val) type##_vector_t_push_back(vec_ptr, val)
 #define vector_erase(type, vec_ptr, idx) type##_vector_t_erase(vec_ptr, idx)

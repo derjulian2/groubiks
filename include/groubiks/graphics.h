@@ -7,9 +7,11 @@
  * @brief created with the help of https://vulkan-tutorial.com/Introduction
  */
 
-#include <vulkan/vulkan_core.h>
+#include <groubiks/log.h>
+#include <groubiks/config.h>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan_core.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
