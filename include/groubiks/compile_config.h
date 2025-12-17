@@ -8,17 +8,20 @@
  * @brief compile-time options for groubiks bundled in one file.
  */
 
+#include <vulkan/vulkan_core.h>
 #define RENDERER_LOG 4
 
-static const int glfw_window_width  = 640;
-static const int glfw_window_height = 480;
+#define DEFAULT_WIN_WIDTH 640
+#define DEFAULT_WIN_HEIGHT 480
+#define DEFAULT_APPLICATION_NAME "groubiks - rubiks-cube simulator"
 
-static const char* vk_validationLayers[] = {
-    "VK_LAYER_KHRONOS_validation"
-};
-static const int vk_num_validationLayers = sizeof(vk_validationLayers) / sizeof(const char*);
+#define VK_VALIDATIONLAYERS (const char*[]) { "VK_LAYER_KHRONOS_validation" }
+#define VK_EXTENSIONS (const char*[]) { VK_EXT_DEBUG_UTILS_EXTENSION_NAME }
 
-static const char* application_title   = "groubiks - cube simulator";
+#define VK_NUM_VALIDATIONLAYERS 1
+#define VK_NUM_EXTENSIONS 1
+
+#define VK_DEFAULT_DEBUGMESSAGE_CALLBACK &VulkanContext_debug_callback
 
 static const char* logs_init_fail_str    = "[ERROR] failed to initialize logging-system\n";
 static const char* glfw_init_fail_str    = "[ERROR] failed to initialize GLFW\n";

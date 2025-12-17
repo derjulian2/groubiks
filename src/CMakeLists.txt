@@ -4,23 +4,36 @@ set(CMAKE_C_STANDARD 23)
 
 project(groubiks)
 
+find_package(glfw3 REQUIRED)
+
+option(BUILD_VULKAN_RENDERER OFF)
+option(BUILD_TESTS OFF)
+
+set(BUILD_VULKAN_RENDERER ON)
+set(BUILD_TESTS OFF)
+
 set(GROUBIKS_SOURCES
-    "main.c"
-    "log.c"
-    "graphics.c")
+    "main.c")
+
+set(GROUBIKS_UTILITY_SOURCES
+    "utility/string.c"
+    "utility/vector.c"
+    "utility/log.c")
+
+set(GROUBIKS_VULKAN_RENDERER_SOURCES
+    "renderer/vulkan_context.c")
+
+set(GROUBIKS_ROOT_DIR
+    ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(GROUBIKS_INCLUDE_DIR
     "../include")
 
-find_package(glfw3 REQUIRED)
+cmake_path(ABSOLUTE_PATH GROUBIKS_INCLUDE_DIR NORMALIZE)
+cmake_path(GET GROUBIKS_ROOT_DIR PARENT_PATH GROUBIKS_ROOT_DIR)
+cmake_path(ABSOLUTE_PATH GROUBIKS_ROOT_DIR NORMALIZE)
 
-add_executable(groubiks
-    ${GROUBIKS_SOURCES})
-
-target_include_directories(groubiks
-    PUBLIC ${GROUBIKS_INCLUDE_DIR})
-
-target_link_libraries(groubiks
+set(GROUBIKS_LIBRARY_DEPENDENCIES
     glfw
     vulkan
     dl
@@ -29,3 +42,28 @@ target_link_libraries(groubiks
     Xrandr
     Xxf86vm
     Xi)
+
+if (BUILD_TESTS)
+    add_subdirectory("utility")
+endif()
+
+if (BUILD_VULKAN_RENDERER)
+
+    add_executable(groubiks
+        ${GROUBIKS_SOURCES}
+        ${GROUBIKS_UTILITY_SOURCES}
+        ${GROUBIKS_VULKAN_RENDERER_SOURCES})
+
+    message("${GROUBIKS_UTILITY_SOURCES}")
+    message("${GROUBIKS_VULKAN_RENDERER_SOURCES}")
+
+    target_compile_definitions(groubiks
+        PUBLIC GLFW_INCLUDE_VULKAN)
+
+    target_include_directories(groubiks
+        PUBLIC ${GROUBIKS_INCLUDE_DIR})
+
+    target_link_libraries(groubiks
+        PUBLIC ${GROUBIKS_LIBRARY_DEPENDENCIES})
+
+endif()

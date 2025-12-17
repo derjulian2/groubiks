@@ -1,11 +1,12 @@
 
-#include <GLFW/glfw3.h>
+#include <groubiks/compile_config.h>
+
 #include <groubiks/cube.h>
-#include <groubiks/graphics.h>
-#include <groubiks/log.h>
-#include <groubiks/config.h>
+#include <groubiks/utility/log.h>
+#include <groubiks/renderer/vulkan_context.h>
 
 int main(int argc, char** argv) {
+    Renderer_result_t err = 0;
     FILE* logfile = fopen("renderer.log", "w");
     if (logfile == NULL) {
         return -1;
@@ -15,6 +16,7 @@ int main(int argc, char** argv) {
         fputs(logs_init_fail_str, stderr);
         return -1;
     }
+    log_redirect_all_to(logfile);
 #endif
 
     if (glfwInit() != GLFW_TRUE) {
@@ -23,27 +25,28 @@ int main(int argc, char** argv) {
     }
 
     VulkanContext_t vulkan_ctx;
-    if (CreateVulkanContext(&vulkan_ctx, application_title, vk_validationLayers, vk_num_validationLayers) != 0) {
-        fputs(vk_context_fail_str, stderr);
-        return -1;
+    err = CreateVulkanContext(&vulkan_ctx);
+    if (err != 0) {
+        log_error("failed to initialize Vulkan-Context");
+        return err;
     }
-
-    if (VulkanContext_GetDevices(&vulkan_ctx) != 0) {
-        return -1;
+    err = VulkanContext_GetDevices(&vulkan_ctx);
+    if (err != 0) {
+        log_error("failed to get devices");
+        return err;
     }
-
-    for (int i = 0; i < vulkan_ctx.m_devices.size; ++i) {
-        VkPhysicalDeviceProperties p;
-        vkGetPhysicalDeviceProperties(vulkan_ctx.m_devices.data[i], &p);
-        printf("devicename: %s\n",p.deviceName);
+    for (int i = 0; i < vulkan_ctx.m_device_mngr.m_available_devices.size; ++i) {
+        VkPhysicalDeviceProperties props;
+        vkGetPhysicalDeviceProperties(*vector_at(VkPhysicalDevice, &vulkan_ctx.m_device_mngr.m_available_devices, i), &props);
+        printf("device: %s\n", props.deviceName);
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     GLFWwindow* win = glfwCreateWindow(
-        glfw_window_width,  
-        glfw_window_height, 
-        application_title,
+        DEFAULT_WIN_WIDTH,  
+        DEFAULT_WIN_HEIGHT, 
+        DEFAULT_APPLICATION_NAME,
         NULL,
         NULL
     );

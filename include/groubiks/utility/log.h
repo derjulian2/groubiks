@@ -8,7 +8,9 @@
  * @brief logging-management for the groubiks-vulkan-renderer.
  */
 
-#include <utility/vector.h>
+#include <groubiks/utility/vector.h>
+#include <groubiks/utility/string.h>
+#include <groubiks/utility/macros.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -18,9 +20,6 @@
 /**
  * default-macros
  */
-#ifndef GROUBIKS_MAX_LOGS
-    #define GROUBIKS_MAX_LOGS 32
-#endif
 // #define GROUBIKS_LOGS_ALWAYS_FLUSH
 
 #define INFO_LOG    0
@@ -71,14 +70,13 @@
  */
 typedef struct {
     FILE* m_fno;
-    const char* m_prefix;
+    string_t m_prefix;
     int m_use_timestamp;
 } log_t;
-declare_vector(log_t);
 /**
  * @brief global logs-container. see below.
  */
-extern vector_t(log_t) g_logs;
+extern vector_t g_logs;
 #define GROUBIKS_LOGS_CONTAINER g_logs
 /**
  * @details the logging-system works via a global container
@@ -96,21 +94,20 @@ extern vector_t(log_t) g_logs;
 
 /**
  * @brief initializes logging. be sure to call log_end() after you are done.
+ * @returns 0 on success, -1 on error.
  */
 int log_init();
-/**
- * @brief print out all stored up logs to their designated streams.
- */
-int log_flush();
 /**
  * @brief print out all stored up logs to their designated streams and free resources.
  */
 void log_end();
 /**
  * @brief create a new log in the global log-container.
- * @returns that new logs index in the container.
+ * @returns index to the log in the container, or -1 on error.
  */
 int log_new(FILE* fno, const char* prefix, int timestamp);
+void log_redirect_to(int logno, FILE* fno);
+void log_redirect_all_to(FILE* fno);
 
 void _log_make_timestamp(char* buf);
 void _log_make_msg(int logno, const char* msg);
@@ -124,24 +121,37 @@ void _log_make_fmsg(int logno, const char* fmt, ...);
     #define log_warning(msg)
     #define log_error(msg)
     #define log(logno, msg)
+    #define log_if(expr, logno, msg1, msg2)
     
-    #define flog_info(fmt, ...)
-    #define flog_debug(fmt, ...)
-    #define flog_warning(fmt, ...)
-    #define flog_error(fmt, ...)
-    #define flog(logno, fmt, ...)
+    #define logf_info(fmt, ...)
+    #define logf_debug(fmt, ...)
+    #define logf_warning(fmt, ...)
+    #define logf_error(fmt, ...)
+    #define logf(logno, fmt, ...)
+    #define logf_if(expr, logno, fmt1, fmt2, ...)
 #else
     #define log_info(msg)    _log_make_msg(INFO_LOG, msg)
     #define log_debug(msg)   _log_make_msg(DEBUG_LOG, msg)
     #define log_warning(msg) _log_make_msg(WARNING_LOG, msg)
     #define log_error(msg)   _log_make_msg(ERROR_LOG, msg)
     #define log(logno, msg)  _log_make_msg(logno, msg)
+    #define log_if(expr, logno, msg1, msg2) \
+    if (expr) \
+    { log(logno, msg1); } \
+    else \
+    { log(logno, msg2); }
     
-    #define flog_info(fmt, ...)    _log_make_fmsg(INFO_LOG, fmt, __VA_ARGS__)
-    #define flog_debug(fmt, ...)   _log_make_fmsg(DEBUG_LOG, fmt, __VA_ARGS__)
-    #define flog_warning(fmt, ...) _log_make_fmsg(WARNING_LOG, fmt, __VA_ARGS__)
-    #define flog_error(fmt, ...)   _log_make_fmsg(ERROR_LOG, fmt, __VA_ARGS__)
-    #define flog(logno, fmt, ...)  _log_make_fmsg(logno, fmt, __VA_ARGS__)
+    #define logf_info(fmt, ...)    _log_make_fmsg(INFO_LOG, fmt, __VA_ARGS__)
+    #define logf_debug(fmt, ...)   _log_make_fmsg(DEBUG_LOG, fmt, __VA_ARGS__)
+    #define logf_warning(fmt, ...) _log_make_fmsg(WARNING_LOG, fmt, __VA_ARGS__)
+    #define logf_error(fmt, ...)   _log_make_fmsg(ERROR_LOG, fmt, __VA_ARGS__)
+    #define logf(logno, fmt, ...)  _log_make_fmsg(logno, fmt, __VA_ARGS__)
+    #define logf_if(expr, logno, fmt1, fmt2, ...) \
+    if (expr) \
+    { logf(logno, fmt1, __VA_ARGS__); } \
+    else \
+    { logf(logno, fmt2, __VA_ARGS__); }
 #endif
+
 
 #endif
