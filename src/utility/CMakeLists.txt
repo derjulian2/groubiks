@@ -1,9 +1,19 @@
 
+set(GROUBIKS_UTILITY_SOURCES
+    "common.c"
+    "log.c"
+    "vector.c"
+    "optional.c")
+
+if (BUILD_VULKAN_RENDERER)
+    target_sources(groubiks
+        PUBLIC ${GROUBIKS_UTILITY_SOURCES})
+endif()
+
 if (BUILD_TESTS)
     add_executable(groubiks_utility_tests
         "main.c"
-        "string.c"
-        "vector.c")
+        ${GROUBIKS_UTILITY_SOURCES})
 
     target_compile_definitions(groubiks_utility_tests
         PUBLIC BUILD_TESTS)

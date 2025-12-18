@@ -1,7 +1,9 @@
 
 #include <groubiks/utility/log.h>
 
-vector_t g_logs = null_vector;
+define_vector(log_t);
+
+vector_t(log_t) g_logs = null_vector(log_t);
 
 int log_init() {
     vector_result_t err = 0;
@@ -12,57 +14,56 @@ int log_init() {
     /* initialize the 4 default-logs */
     *vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 0) = (log_t) {
         .m_fno = INFO_LOG_DEFAULT_FNO,
-        .m_prefix = make_string(INFO_LOG_DEFAULT_PREFIX, &err),
+        .m_prefix = strdup(INFO_LOG_DEFAULT_PREFIX),
         .m_use_timestamp = INFO_LOG_DEFAULT_USE_TIMESTAMP
     };
-    if (err != 0) {
+    if (vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 0) == NULL) {
         return -1;
     }
     *vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 1) = (log_t) {
         .m_fno = DEBUG_LOG_DEFAULT_FNO,
-        .m_prefix = make_string(DEBUG_LOG_DEFAULT_PREFIX, &err),
+        .m_prefix = strdup(DEBUG_LOG_DEFAULT_PREFIX),
         .m_use_timestamp = DEBUG_LOG_DEFAULT_USE_TIMESTAMP
     };
-    if (err != 0) {
+    if (vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 1) == NULL) {
         return -1;
     }
     *vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 2) = (log_t) {
         .m_fno = WARNING_LOG_DEFAULT_FNO,
-        .m_prefix = make_string(WARNING_LOG_DEFAULT_PREFIX, &err),
+        .m_prefix = strdup(WARNING_LOG_DEFAULT_PREFIX),
         .m_use_timestamp = WARNING_LOG_DEFAULT_USE_TIMESTAMP
     };
-    if (err != 0) {
+    if (vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 2) == NULL) {
         return -1;
     }
     *vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 3) = (log_t) {
         .m_fno = ERROR_LOG_DEFAULT_FNO,
-        .m_prefix = make_string(ERROR_LOG_DEFAULT_PREFIX, &err),
+        .m_prefix = strdup(ERROR_LOG_DEFAULT_PREFIX),
         .m_use_timestamp = ERROR_LOG_DEFAULT_USE_TIMESTAMP
     };
-    if (err != 0) {
+    if (vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 3) == NULL) {
         return -1;
     }
     return 0;
 }
 
 void log_end() {
-    for (int i = 0; i < GROUBIKS_LOGS_CONTAINER.size; ++i) {
-        free_string(&vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, i)->m_prefix);
-    }
-    free_vector(&GROUBIKS_LOGS_CONTAINER);
+    vector_for_each(log_t, &GROUBIKS_LOGS_CONTAINER, log)
+    { free(log->m_prefix); }
+    free_vector(log_t, &GROUBIKS_LOGS_CONTAINER);
 }
 
 int log_new(FILE* fno, const char* prefix, int use_timestamp) {
     vector_result_t err = 0;
     log_t tmp = (log_t) {
         .m_fno = fno,
-        .m_prefix = make_string(prefix, &err),
+        .m_prefix = strdup(prefix),
         .m_use_timestamp = use_timestamp
     };
-    if (err != 0) {
+    if (tmp.m_prefix == NULL) {
         return -1;
     }
-    vector_push_back(log_t, &GROUBIKS_LOGS_CONTAINER, &tmp, &err);
+    vector_push_back(log_t, &GROUBIKS_LOGS_CONTAINER, tmp, &err);
     if (err != 0) {
         return -1;
     }
@@ -97,8 +98,8 @@ void _log_make_msg(int lognum, const char* msg) {
         _log_make_timestamp(&timestamp_str[0]);
         fputs(&timestamp_str[0], log->m_fno);
     }
-    if (!string_empty(&log->m_prefix)) {
-        fputs(log->m_prefix.data, log->m_fno);
+    if (log->m_prefix != NULL) {
+        fputs(log->m_prefix, log->m_fno);
         fputc(' ', log->m_fno);
     }
     fputs(msg, log->m_fno);
@@ -118,8 +119,8 @@ void _log_make_fmsg(int lognum, const char* fmt, ...) {
         _log_make_timestamp(&timestamp_str[0]);
         fputs(&timestamp_str[0], log->m_fno);
     }
-    if (!string_empty(&log->m_prefix)) {
-        fputs(log->m_prefix.data, log->m_fno);
+    if (log->m_prefix != NULL) {
+        fputs(log->m_prefix, log->m_fno);
         fputc(' ', log->m_fno);
     }
     va_list arglist;

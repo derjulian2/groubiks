@@ -3,12 +3,11 @@
 #define GROUBIKS_COMPILETIME_CONFIG_H
 
 /**
- * @file config.h
+ * @file compile_config.h
  * @author Julian Benzel
  * @brief compile-time options for groubiks bundled in one file.
  */
 
-#include <vulkan/vulkan_core.h>
 #define RENDERER_LOG 4
 
 #define DEFAULT_WIN_WIDTH 640
@@ -17,11 +16,11 @@
 
 #define VK_VALIDATIONLAYERS (const char*[]) { "VK_LAYER_KHRONOS_validation" }
 #define VK_EXTENSIONS (const char*[]) { VK_EXT_DEBUG_UTILS_EXTENSION_NAME }
+#define VK_DEVICE_EXTENSIONS (const char*[]) { VK_KHR_SWAPCHAIN_EXTENSION_NAME }
 
 #define VK_NUM_VALIDATIONLAYERS 1
 #define VK_NUM_EXTENSIONS 1
-
-#define VK_DEFAULT_DEBUGMESSAGE_CALLBACK &VulkanContext_debug_callback
+#define VK_NUM_DEVICE_EXTENSIONS 1
 
 static const char* logs_init_fail_str    = "[ERROR] failed to initialize logging-system\n";
 static const char* glfw_init_fail_str    = "[ERROR] failed to initialize GLFW\n";

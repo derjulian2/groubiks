@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.30.0)
 
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_C_STANDARD 23)
 
 project(groubiks)
@@ -13,15 +14,8 @@ set(BUILD_VULKAN_RENDERER ON)
 set(BUILD_TESTS OFF)
 
 set(GROUBIKS_SOURCES
-    "main.c")
-
-set(GROUBIKS_UTILITY_SOURCES
-    "utility/string.c"
-    "utility/vector.c"
-    "utility/log.c")
-
-set(GROUBIKS_VULKAN_RENDERER_SOURCES
-    "renderer/vulkan_context.c")
+    "main.c"
+    "Application.c")
 
 set(GROUBIKS_ROOT_DIR
     ${CMAKE_CURRENT_SOURCE_DIR})
@@ -43,19 +37,12 @@ set(GROUBIKS_LIBRARY_DEPENDENCIES
     Xxf86vm
     Xi)
 
-if (BUILD_TESTS)
-    add_subdirectory("utility")
-endif()
-
 if (BUILD_VULKAN_RENDERER)
 
     add_executable(groubiks
-        ${GROUBIKS_SOURCES}
-        ${GROUBIKS_UTILITY_SOURCES}
-        ${GROUBIKS_VULKAN_RENDERER_SOURCES})
+        ${GROUBIKS_SOURCES})
 
-    message("${GROUBIKS_UTILITY_SOURCES}")
-    message("${GROUBIKS_VULKAN_RENDERER_SOURCES}")
+    add_subdirectory("renderer")
 
     target_compile_definitions(groubiks
         PUBLIC GLFW_INCLUDE_VULKAN)
@@ -67,3 +54,5 @@ if (BUILD_VULKAN_RENDERER)
         PUBLIC ${GROUBIKS_LIBRARY_DEPENDENCIES})
 
 endif()
+
+add_subdirectory("utility")

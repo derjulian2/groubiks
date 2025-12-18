@@ -9,8 +9,7 @@
  */
 
 #include <groubiks/utility/vector.h>
-#include <groubiks/utility/string.h>
-#include <groubiks/utility/macros.h>
+#include <groubiks/utility/common.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -21,7 +20,7 @@
  * default-macros
  */
 // #define GROUBIKS_LOGS_ALWAYS_FLUSH
-
+// #define GROUBIKS_NO_LOGS
 #define INFO_LOG    0
 #define DEBUG_LOG   1
 #define WARNING_LOG 2
@@ -70,13 +69,14 @@
  */
 typedef struct {
     FILE* m_fno;
-    string_t m_prefix;
+    cstring_t m_prefix;
     int m_use_timestamp;
 } log_t;
+declare_vector(log_t);
 /**
  * @brief global logs-container. see below.
  */
-extern vector_t g_logs;
+extern vector_t(log_t) g_logs;
 #define GROUBIKS_LOGS_CONTAINER g_logs
 /**
  * @details the logging-system works via a global container

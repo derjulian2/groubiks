@@ -1,9 +1,9 @@
 
 #include <groubiks/utility/vector.h>
-#include <groubiks/utility/string.h>
+#include <groubiks/utility/optional.h>
 
 #ifdef BUILD_TESTS
 int main(int argc, char** argv) {
-    return vector_test(stdout) || string_test(stdout);
+    return vector_test(stdout) || optional_test(stdout);
 }
 #endif
