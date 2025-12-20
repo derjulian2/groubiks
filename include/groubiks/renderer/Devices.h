@@ -3,24 +3,23 @@
 #define GROUBIKS_DEVICEMANAGER_H
 
 #include <GLFW/glfw3.h>
-#include <groubiks/renderer/ActiveDevice.h>
+#include <groubiks/renderer/Extensions.h>
 #include <groubiks/utility/vector.h>
 #include <groubiks/utility/common.h>
 
 declare_vector(VkPhysicalDevice);
 
 typedef struct {
+    VulkanExtensions m_device_extensions; // should hold for all devices that get added to active_devices
     vector_t(VkPhysicalDevice) m_available_devices;
-    vector_t(VulkanActiveDevice_t) m_active_devices;
 } VulkanDevices_t;
+typedef VulkanDevices_t* VulkanDevices;
 
-GroubiksResult_t CreateVulkanDevices(VulkanDevices_t* dvcs, VkInstance* instance);
-void DestroyVulkanDevices(VulkanDevices_t* dvcs);
+VulkanDevices CreateVulkanDevices(VkInstance instance, const char** extensionNames, uint32_t numExtensionsNames);
+void DestroyVulkanDevices(VulkanDevices dvcs);
 
-GroubiksResult_t _setupAvailableDevices(VulkanDevices_t* dvcs, VkInstance* instance);
+GroubiksResult_t _setupAvailableDevices(VulkanDevices_t* dvcs, VkInstance instance);
 GroubiksResult_t _isDeviceSuitable(VkPhysicalDevice dvc);
-GroubiksResult_t _deviceHasExtensions(VkPhysicalDevice dvc, const char** extensionNames, uint32_t numExtensionsNames);
-GroubiksResult_t _checkQueueFamilies(VkPhysicalDevice dvc);
-GroubiksResult_t _setupActiveDevices(VulkanDevices_t* dvcs, VkInstance* instance);
+GroubiksResult_t _deviceHasExtensions(VkPhysicalDevice dvc, VulkanExtensions ext);
 
 #endif

@@ -1,37 +1,45 @@
 
 #include <groubiks/renderer/Extensions.h>
 
-GroubiksResult_t CreateVulkanExtensions(VulkanExtensions_t* ext, 
-        const char** validationLayers,
+VulkanExtensions CreateVulkanExtensions(const char** validationLayers,
         uint32_t numValidationLayers,
         const char** extensionNames,
         uint32_t numExtensionsNames) {
-    assert(ext != NULL);
+    VulkanExtensions ext = malloc(sizeof(VulkanExtensions_t));
+    if (ext == NULL)
+    { return NULL; }
     GroubiksResult_t err = 0;
     int i = 0;
 
     /* initialize validationlayers */
     ext->m_validationlayers = make_vector(cstring_t, NULL, numValidationLayers, &err);
     if (err != 0) 
-    { return -1; }
+    { goto error; }
+    vector_zero(cstring_t, &ext->m_validationlayers);
     vector_for_each(cstring_t, &ext->m_validationlayers, layer)
     {
         *layer = strdup(validationLayers[i++]);
         if (*layer == NULL) 
-        { return -1; }
+        { goto error; }
     }
     /* initialize extensions */
     ext->m_extensions = make_vector(cstring_t, NULL, numExtensionsNames, &err);
     if (err != 0)
-    { return -1; }
+    { goto error; }
     i = 0;
+    vector_zero(cstring_t, &ext->m_extensions);
     vector_for_each(cstring_t, &ext->m_extensions, extension)
     {
         *extension = strdup(extensionNames[i++]);
         if (*extension == NULL) 
-        { return -1; }
+        { goto error; }
     }
-    return 0;
+    log_info("successfully setup vulkan-extensions");
+    return ext;
+error:
+    log_error("failed to setup vulkan-extensions");
+    DestroyVulkanExtensions(ext);
+    return NULL;
 }
 
 GroubiksResult_t _setupGLFWExtensions(VulkanExtensions_t* ext) {
@@ -50,16 +58,17 @@ GroubiksResult_t _setupGLFWExtensions(VulkanExtensions_t* ext) {
     return 0;
 }
 
-void DestroyVulkanExtensions(VulkanExtensions_t* ext) {
-    assert(ext != NULL);
-    
+void DestroyVulkanExtensions(VulkanExtensions ext) {
+    if (ext == NULL)
+    { return; }
+
     vector_for_each(cstring_t, &ext->m_validationlayers, layer)
     { free(*layer); }
-    free_vector(cstring_t, &ext->m_validationlayers);
+    free_vector(&ext->m_validationlayers);
     
     vector_for_each(cstring_t, &ext->m_extensions, extension)
     { free(*extension); }
-    free_vector(cstring_t, &ext->m_extensions);
+    free_vector(&ext->m_extensions);
 }
 
 GroubiksResult_t VulkanExtensions_VerifyValidationLayers(VulkanExtensions_t* ext) {

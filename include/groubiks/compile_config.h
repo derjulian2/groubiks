@@ -22,6 +22,9 @@
 #define VK_NUM_EXTENSIONS 1
 #define VK_NUM_DEVICE_EXTENSIONS 1
 
+#define GROUBIKS_DEFAULT_VERTEX_SHADER_PATH "/home/julian/Projects/groubiks/src/shaders/vertex.spv"
+#define GROUBIKS_DEFAULT_FRAGMENT_SHADER_PATH "/home/julian/Projects/groubiks/src/shaders/fragment.spv"
+
 static const char* logs_init_fail_str    = "[ERROR] failed to initialize logging-system\n";
 static const char* glfw_init_fail_str    = "[ERROR] failed to initialize GLFW\n";
 static const char* glfw_win_fail_str     = "[ERROR] failed to initialize GLFWwindow\n";

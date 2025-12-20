@@ -10,7 +10,8 @@
 #include <assert.h>
 
 typedef struct {
-    VulkanContext_t m_vulkanctx;
+    VulkanContext m_vulkanctx;
+    RenderContext m_rndrctx;
     GLFWwindow* m_window;
 } GroubiksApplication_t;
 

@@ -27,9 +27,13 @@ GroubiksResult_t Groubiks_Init(GroubiksApplication_t* app) {
         return -1;
     }
 
-    err = CreateVulkanContext(&app->m_vulkanctx);
-    if (err != 0) 
-    { log_error("failed to create Vulkan-Rendering-Context."); return -1; }
+    app->m_vulkanctx = CreateVulkanContext();
+    if (app->m_vulkanctx == NULL) 
+    { log_error("failed to create Vulkan-Context."); return -1; }
+
+    app->m_rndrctx = VulkanContext_AddRenderContext(app->m_vulkanctx, app->m_window);
+    if (app->m_rndrctx == NULL)
+    { log_error("failed to create Vulkan-Rendering-Context"); return -1; }
 
     return 0;
 }
@@ -39,14 +43,16 @@ GroubiksResult_t Groubiks_Execute(GroubiksApplication_t* app) {
     
     while (!glfwWindowShouldClose(app->m_window)) {
         glfwPollEvents();
+        VulkanContext_Draw(app->m_vulkanctx, app->m_rndrctx);
     }
+    vkDeviceWaitIdle(app->m_rndrctx->m_device->m_logical_device);
 
     return 0;
 }
 
 void Groubiks_Destroy(GroubiksApplication_t* app) {
     assert(app != NULL);
-    DestroyVulkanContext(&app->m_vulkanctx);
+    DestroyVulkanContext(app->m_vulkanctx);
     glfwDestroyWindow(app->m_window);
     glfwTerminate();
     log_end();

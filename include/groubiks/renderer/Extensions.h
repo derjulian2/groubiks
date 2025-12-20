@@ -17,17 +17,17 @@ typedef struct {
     vector_t(cstring_t) m_validationlayers;
     vector_t(cstring_t) m_extensions;
 } VulkanExtensions_t;
+typedef VulkanExtensions_t* VulkanExtensions;
 
-GroubiksResult_t CreateVulkanExtensions(VulkanExtensions_t* ext, 
-        const char** validationLayers,
+VulkanExtensions CreateVulkanExtensions(const char** validationLayers,
         uint32_t numValidationLayers,
         const char** extensionNames,
         uint32_t numExtensionsNames);
 GroubiksResult_t _setupGLFWExtensions(VulkanExtensions_t* ext);
 
-void DestroyVulkanExtensions(VulkanExtensions_t* ext);
+void DestroyVulkanExtensions(VulkanExtensions ext);
 
-GroubiksResult_t VulkanExtensions_VerifyValidationLayers(VulkanExtensions_t* ext);
-GroubiksResult_t VulkanExtensions_VerifyExtensions(VulkanExtensions_t* ext);
+GroubiksResult_t VulkanExtensions_VerifyValidationLayers(VulkanExtensions ext);
+GroubiksResult_t VulkanExtensions_VerifyExtensions(VulkanExtensions ext);
 
 #endif

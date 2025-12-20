@@ -50,7 +50,7 @@ int log_init() {
 void log_end() {
     vector_for_each(log_t, &GROUBIKS_LOGS_CONTAINER, log)
     { free(log->m_prefix); }
-    free_vector(log_t, &GROUBIKS_LOGS_CONTAINER);
+    free_vector(&GROUBIKS_LOGS_CONTAINER);
 }
 
 int log_new(FILE* fno, const char* prefix, int use_timestamp) {

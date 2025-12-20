@@ -1,17 +1,17 @@
 
 #include <groubiks/utility/vector.h>
 
-declare_vector(int)
-
-define_vector(int)
-
-
 #define print_int_vec(fno, vec) \
 for (int i = 0; i < vec.size; ++i) { \
     fprintf(fno, "%d ", *vector_at(int, &vec, i)); \
 }
 
 #ifdef BUILD_TESTS
+declare_vector(int);
+
+define_vector(int);
+define_vector_default_compare_predicate(int);
+
 int vector_test(FILE* fno) {
     int err = 0;
     int data[] = { 1, 2, 3, 4, 5 };
@@ -39,7 +39,14 @@ int vector_test(FILE* fno) {
     print_int_vec(stdout, vec_1);
     fprintf(fno, "]\n");
 
-    free_vector(int, &vec_1);
+    fprintf(fno, "vector contains 420 : %d at %d\n", 
+        vector_contains(int, &vec_1, 420),
+        (int)vector_make_index(int, &vec_1, vector_find(int, &vec_1, 420)));
+    fprintf(fno, "vector contains 512 : %d at %d\n", 
+        vector_contains(int, &vec_1, 512),
+        (int)vector_make_index(int, &vec_1, vector_find(int, &vec_1, 512)));
+
+    free_vector(&vec_1);
 
     return err;
 }

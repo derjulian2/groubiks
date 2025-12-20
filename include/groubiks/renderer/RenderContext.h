@@ -5,21 +5,34 @@
 #include <GLFW/glfw3.h>
 #include <groubiks/utility/common.h>
 #include <groubiks/utility/vector.h>
+#include <groubiks/utility/log.h>
+#include <groubiks/renderer/ActiveDevice.h>
+#include <groubiks/renderer/Devices.h>
+#include <groubiks/renderer/SwapChain.h>
+#include <groubiks/renderer/GraphicsPipeline.h>
+#include <groubiks/renderer/Commands.h>
 
-declare_vector(VkImage);
+declare_vector(VkFramebuffer);
 
 typedef struct {
+    VulkanActiveDevice m_device;
     VkSurfaceKHR m_surface;
-    
-    VkSwapchainKHR m_swapchain;
-    VkExtent2D m_swapchain_extent;
-    VkFormat m_swapchain_format;
-    vector_t(VkImage) m_swapchain_images;
+    VulkanGraphicsPipeline m_pipeline;
+    VulkanSwapChain m_swapchain;
+    VulkanCommands m_commands;
+    vector_t(VkFramebuffer) m_framebuffers;
 } RenderContext_t;
+typedef RenderContext_t* RenderContext;
 
-GroubiksResult_t CreateRenderContext(RenderContext_t* rndr_ctx);
-GroubiksResult_t _setupSwapChain(RenderContext_t* rndr_ctx);
+declare_vector(RenderContext);
 
-void DestroyRenderContext(RenderContext_t* rndr_ctx);
+RenderContext CreateRenderContext(GLFWwindow* win, VkInstance instance, VulkanDevices dvcs);
+GroubiksResult_t _setupSurface(RenderContext_t* rndr_ctx, GLFWwindow* win, VkInstance instance);
+GroubiksResult_t _setupActiveDevice(RenderContext rndr_ctx, VkInstance instance, VulkanDevices dvcs);
+GroubiksResult_t _setupFrameBuffers(RenderContext rndr_ctx);
+
+void DestroyRenderContext(RenderContext_t* rndr_ctx, VkInstance instance);
+
+GroubiksResult_t RecordCommandBuffer(RenderContext rndr_ctx, VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 #endif
