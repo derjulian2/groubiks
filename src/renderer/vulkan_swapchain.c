@@ -1,9 +1,9 @@
 
-#include <groubiks/renderer/SwapChain.h>
+#include <groubiks/renderer/vulkan_swapchain.h>
 
 
 VulkanSwapChain CreateSwapChain(VulkanActiveDevice device, VkSurfaceKHR surface, GLFWwindow* win) {
-    GroubiksResult_t err = 0;
+    result_t err = 0;
     uint32_t imageCount;
     VulkanSwapChain swapchain;
     VkResult vkerr = VK_SUCCESS;
@@ -108,7 +108,7 @@ error:
 
 VulkanSwapChainDetails _getSwapChainCapabilities(VulkanActiveDevice device, VkSurfaceKHR surface) {
     VkResult vkerr = VK_SUCCESS;
-    GroubiksResult_t err = 0;
+    result_t err = 0;
     uint32_t formatCount, modeCount;
     VulkanSwapChainDetails res = malloc(sizeof(VulkanSwapChainDetails_t));
     if (res == NULL)
@@ -167,7 +167,7 @@ error:
     return NULL;
 }
 
-GroubiksResult_t _pickSurfaceFormat(VulkanSwapChain swapchain, VulkanSwapChainDetails details) {
+result_t _pickSurfaceFormat(VulkanSwapChain swapchain, VulkanSwapChainDetails details) {
     vector_for_each(VkSurfaceFormatKHR, &details->m_formats, format) {
         if (format->format     == VK_FORMAT_B8G8R8_SRGB &&
             format->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) { 
@@ -184,14 +184,14 @@ GroubiksResult_t _pickSurfaceFormat(VulkanSwapChain swapchain, VulkanSwapChainDe
     return 0;
 }
 
-GroubiksResult_t _pickPresentMode(VulkanSwapChain swapchain, VulkanSwapChainDetails details) {
+result_t _pickPresentMode(VulkanSwapChain swapchain, VulkanSwapChainDetails details) {
     /* set present-mode to guaranteed options right away. other present modes may be checked here if desired */
     swapchain->m_swapchain_mode = VK_PRESENT_MODE_FIFO_KHR;
     log_info("found viable present-mode for swapchain.");
     return 0;
 }
 
-GroubiksResult_t _pickSwapExtent(VulkanSwapChain swapchain, VulkanSwapChainDetails details, GLFWwindow* win) {
+result_t _pickSwapExtent(VulkanSwapChain swapchain, VulkanSwapChainDetails details, GLFWwindow* win) {
     if (details->m_capabilities.currentExtent.width != UINT32_MAX) { 
         swapchain->m_swapchain_extent = details->m_capabilities.currentExtent;
         logf_info("set swapextent to currentextent of %dx%d.",
@@ -219,8 +219,8 @@ GroubiksResult_t _pickSwapExtent(VulkanSwapChain swapchain, VulkanSwapChainDetai
     return 0;
 }
 
-GroubiksResult_t _setupImageViews(VulkanSwapChain swapchain, VulkanActiveDevice device) {
-    GroubiksResult_t err = 0;
+result_t _setupImageViews(VulkanSwapChain swapchain, VulkanActiveDevice device) {
+    result_t err = 0;
     VkResult vkerr = VK_SUCCESS;
 
     swapchain->m_swapchain_imageviews = make_vector(VkImageView, NULL, swapchain->m_swapchain_images.size, &err);

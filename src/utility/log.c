@@ -12,36 +12,36 @@ int log_init() {
         return -1;
     }
     /* initialize the 4 default-logs */
-    *vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 0) = (log_t) {
+    *vector_at( &GROUBIKS_LOGS_CONTAINER, 0) = (log_t) {
         .m_fno = INFO_LOG_DEFAULT_FNO,
         .m_prefix = strdup(INFO_LOG_DEFAULT_PREFIX),
         .m_use_timestamp = INFO_LOG_DEFAULT_USE_TIMESTAMP
     };
-    if (vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 0) == NULL) {
+    if (vector_at(&GROUBIKS_LOGS_CONTAINER, 0) == NULL) {
         return -1;
     }
-    *vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 1) = (log_t) {
+    *vector_at(&GROUBIKS_LOGS_CONTAINER, 1) = (log_t) {
         .m_fno = DEBUG_LOG_DEFAULT_FNO,
         .m_prefix = strdup(DEBUG_LOG_DEFAULT_PREFIX),
         .m_use_timestamp = DEBUG_LOG_DEFAULT_USE_TIMESTAMP
     };
-    if (vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 1) == NULL) {
+    if (vector_at(&GROUBIKS_LOGS_CONTAINER, 1) == NULL) {
         return -1;
     }
-    *vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 2) = (log_t) {
+    *vector_at(&GROUBIKS_LOGS_CONTAINER, 2) = (log_t) {
         .m_fno = WARNING_LOG_DEFAULT_FNO,
         .m_prefix = strdup(WARNING_LOG_DEFAULT_PREFIX),
         .m_use_timestamp = WARNING_LOG_DEFAULT_USE_TIMESTAMP
     };
-    if (vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 2) == NULL) {
+    if (vector_at(&GROUBIKS_LOGS_CONTAINER, 2) == NULL) {
         return -1;
     }
-    *vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 3) = (log_t) {
+    *vector_at(&GROUBIKS_LOGS_CONTAINER, 3) = (log_t) {
         .m_fno = ERROR_LOG_DEFAULT_FNO,
         .m_prefix = strdup(ERROR_LOG_DEFAULT_PREFIX),
         .m_use_timestamp = ERROR_LOG_DEFAULT_USE_TIMESTAMP
     };
-    if (vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, 3) == NULL) {
+    if (vector_at(&GROUBIKS_LOGS_CONTAINER, 3) == NULL) {
         return -1;
     }
     return 0;
@@ -71,12 +71,12 @@ int log_new(FILE* fno, const char* prefix, int use_timestamp) {
 }
 
 void log_redirect_to(int logno, FILE* fno) {
-    vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, logno)->m_fno = fno;
+    vector_at(&GROUBIKS_LOGS_CONTAINER, logno)->m_fno = fno;
 }
 
 void log_redirect_all_to(FILE* fno) {
     for (int i = 0; i < GROUBIKS_LOGS_CONTAINER.size; ++i) {
-        vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, i)->m_fno = fno;
+        vector_at(&GROUBIKS_LOGS_CONTAINER, i)->m_fno = fno;
     }
 }
 
@@ -90,7 +90,7 @@ void _log_make_timestamp(char* buf) {
 
 void _log_make_msg(int lognum, const char* msg) {
     assert(GROUBIKS_LOGS_CONTAINER.size > lognum);
-    log_t* log = vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, lognum);
+    log_t* log = vector_at(&GROUBIKS_LOGS_CONTAINER, lognum);
     
     char timestamp_str[26];
     memset(&timestamp_str[0], 0, sizeof(timestamp_str));
@@ -111,7 +111,7 @@ void _log_make_msg(int lognum, const char* msg) {
 
 void _log_make_fmsg(int lognum, const char* fmt, ...) {
     assert(GROUBIKS_LOGS_CONTAINER.size > lognum);
-    log_t* log = vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, lognum);
+    log_t* log = vector_at(&GROUBIKS_LOGS_CONTAINER, lognum);
     
     char timestamp_str[26];
     memset(&timestamp_str[0], 0, sizeof(timestamp_str));

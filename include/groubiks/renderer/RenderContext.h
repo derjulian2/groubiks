@@ -6,9 +6,6 @@
 #include <groubiks/utility/common.h>
 #include <groubiks/utility/vector.h>
 #include <groubiks/utility/log.h>
-#include <groubiks/renderer/ActiveDevice.h>
-#include <groubiks/renderer/Devices.h>
-#include <groubiks/renderer/SwapChain.h>
 #include <groubiks/renderer/GraphicsPipeline.h>
 #include <groubiks/renderer/Commands.h>
 
@@ -27,12 +24,12 @@ typedef RenderContext_t* RenderContext;
 declare_vector(RenderContext);
 
 RenderContext CreateRenderContext(GLFWwindow* win, VkInstance instance, VulkanDevices dvcs);
-GroubiksResult_t _setupSurface(RenderContext_t* rndr_ctx, GLFWwindow* win, VkInstance instance);
-GroubiksResult_t _setupActiveDevice(RenderContext rndr_ctx, VkInstance instance, VulkanDevices dvcs);
-GroubiksResult_t _setupFrameBuffers(RenderContext rndr_ctx);
+result_t _setupSurface(RenderContext_t* rndr_ctx, GLFWwindow* win, VkInstance instance);
+result_t _setupActiveDevice(RenderContext rndr_ctx, VkInstance instance, VulkanDevices dvcs);
+result_t _setupFrameBuffers(RenderContext rndr_ctx);
 
 void DestroyRenderContext(RenderContext_t* rndr_ctx, VkInstance instance);
 
-GroubiksResult_t RecordCommandBuffer(RenderContext rndr_ctx, VkCommandBuffer commandBuffer, uint32_t imageIndex);
+result_t RecordCommandBuffer(RenderContext rndr_ctx, VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 #endif

@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 int main(int argc, char** argv) {
-    GroubiksResult_t err = 0;
+    result_t err = 0;
     GroubiksApplication_t app;
 
     err = Groubiks_Init(&app);

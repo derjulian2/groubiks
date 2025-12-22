@@ -6,7 +6,7 @@
  * @file optional.h
  * @date 18/12/2025
  * @author Julian Benzel
- * @brief type-generic optional value-container
+ * @brief type-generic optional value-container.
  */
 
 #include <assert.h>

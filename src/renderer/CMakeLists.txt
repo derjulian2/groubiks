@@ -1,12 +1,11 @@
 
 set(GROUBIKS_VULKAN_RENDERER_SOURCES
-    "VulkanContext.c"
-    "Extensions.c"
-    "Devices.c"
-    "ActiveDevice.c"
+    "vulkan_context.c"
+    "vulkan_extras.c"
+    "vulkan_device_context.c"
     "RenderContext.c"
     "GraphicsPipeline.c"
-    "SwapChain.c"
+    "vulkan_swapchain.c"
     "Commands.c")
 
 target_sources(groubiks

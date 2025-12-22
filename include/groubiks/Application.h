@@ -15,8 +15,8 @@ typedef struct {
     GLFWwindow* m_window;
 } GroubiksApplication_t;
 
-GroubiksResult_t Groubiks_Init(GroubiksApplication_t* app);
-GroubiksResult_t Groubiks_Execute(GroubiksApplication_t* app);
+result_t Groubiks_Init(GroubiksApplication_t* app);
+result_t Groubiks_Execute(GroubiksApplication_t* app);
 void Groubiks_Destroy(GroubiksApplication_t* app);
 
 #endif

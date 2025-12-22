@@ -2,6 +2,7 @@
 #include <groubiks/utility/common.h>
 
 define_vector(cstring_t);
+define_vector(const_cstring_t);
 define_vector(uint32_t);
 
 int clampi(int v, int lo, int hi) {

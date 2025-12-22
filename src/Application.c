@@ -1,10 +1,10 @@
 
 #include <groubiks/Application.h>
 
-GroubiksResult_t Groubiks_Init(GroubiksApplication_t* app) {
+result_t Groubiks_Init(GroubiksApplication_t* app) {
     assert(app != NULL);
     const char* glfwErr;
-    GroubiksResult_t err = 0;
+    result_t err = 0;
 
     err = log_init();
     if (err != 0) 
@@ -38,7 +38,7 @@ GroubiksResult_t Groubiks_Init(GroubiksApplication_t* app) {
     return 0;
 }
 
-GroubiksResult_t Groubiks_Execute(GroubiksApplication_t* app) {
+result_t Groubiks_Execute(GroubiksApplication_t* app) {
     assert(app != NULL);
     
     while (!glfwWindowShouldClose(app->m_window)) {

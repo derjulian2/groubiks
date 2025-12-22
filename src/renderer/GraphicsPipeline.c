@@ -2,7 +2,7 @@
 #include <groubiks/renderer/GraphicsPipeline.h>
 
 VulkanGraphicsPipeline CreateGraphicsPipeline(VkDevice device, VulkanSwapChain swapchain) {
-    GroubiksResult_t err = 0;
+    result_t err = 0;
     VkResult vkerr = VK_SUCCESS;
     VkShaderModule vertexMod = VK_NULL_HANDLE, fragmentMod = VK_NULL_HANDLE;
     VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo, fragShaderStageCreateInfo;
@@ -170,7 +170,7 @@ error:
 }
 
 VkShaderModule _loadShaderModule(const char* codePath, VkDevice device) {
-    GroubiksResult_t err = 0;
+    result_t err = 0;
     VkResult vkerr = VK_SUCCESS;
     VkShaderModule res = VK_NULL_HANDLE;
     VkShaderModuleCreateInfo createInfo;
@@ -197,7 +197,7 @@ error:
     return VK_NULL_HANDLE;
 }
 
-GroubiksResult_t _setupRenderPass(VulkanGraphicsPipeline pipeln, VkDevice device, VulkanSwapChain swapchain) {
+result_t _setupRenderPass(VulkanGraphicsPipeline pipeln, VkDevice device, VulkanSwapChain swapchain) {
     VkResult vkerr = VK_SUCCESS;
     VkAttachmentDescription colorAttachement;
     VkAttachmentReference colorAttachementRef;

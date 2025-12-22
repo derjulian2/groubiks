@@ -20,7 +20,7 @@ typedef struct {
 typedef VulkanGraphicsPipeline_t* VulkanGraphicsPipeline;
 
 VulkanGraphicsPipeline CreateGraphicsPipeline(VkDevice device, VulkanSwapChain swapchain);
-GroubiksResult_t _setupRenderPass(VulkanGraphicsPipeline pipeln, VkDevice device, VulkanSwapChain swapchain);
+result_t _setupRenderPass(VulkanGraphicsPipeline pipeln, VkDevice device, VulkanSwapChain swapchain);
 VkShaderModule _loadShaderModule(const char* codePath, VkDevice device);
 void DestroyVulkanGraphicsPipeline(VulkanGraphicsPipeline pipeln, VkDevice device);
 

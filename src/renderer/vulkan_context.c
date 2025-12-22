@@ -1,5 +1,97 @@
 
-#include <groubiks/renderer/VulkanContext.h>
+#include <groubiks/renderer/vulkan_context.h>
+
+define_vector(VkPhysicalDevice);
+
+groubiks_result_t make_vk_context(struct vk_context* pVulkanContext, struct vk_extras* pExtras);
+void free_vk_context(struct vk_context* pVulkanContext);
+
+groubiks_result_t vk_context_setup_instance(struct vk_context* pVulkanContext);
+groubiks_result_t vk_context_setup_debug_messenger(struct vk_context* pVulkanContext);
+groubiks_result_t vk_context_setup_devices(struct vk_context* pVulkanContext);
+
+VulkanDevices CreateVulkanDevices(VkInstance instance, const char** extensionNames, uint32_t numExtensionsNames) {
+    VulkanDevices dvcs = malloc(sizeof(VulkanDevices_t));
+    if (dvcs == NULL)
+    { return NULL; }
+    memzero(*dvcs);
+    dvcs->m_device_extensions = make_extensions(
+            VK_VALIDATIONLAYERS, VK_NUM_VALIDATIONLAYERS,
+            extensionNames, numExtensionsNames);
+    if (dvcs->m_device_extensions == NULL ||
+        _setupAvailableDevices(dvcs, instance))
+    { goto error; }
+    log_info("successfully retrieved physical devices.");
+    return dvcs;
+error:
+    log_error("failed to retrieve physical devices.");
+    DestroyVulkanDevices(dvcs);
+    return NULL;
+}
+
+result_t _setupAvailableDevices(VulkanDevices_t* dvcs, VkInstance instance) {
+    assert(dvcs != NULL && instance != NULL);
+    result_t err = 0;
+    VkResult vkerr = VK_SUCCESS;
+    uint32_t deviceCount = 0;
+
+    vkerr = vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
+    if (vkerr != VK_SUCCESS)
+    { return -1; }
+    if (deviceCount == 0)
+    { return -1; }
+    dvcs->m_available_devices = make_vector(VkPhysicalDevice, NULL, deviceCount, &err);
+    if (err != 0)
+    { return -1; }
+    vkerr = vkEnumeratePhysicalDevices(instance, &deviceCount, dvcs->m_available_devices.data);
+    if (vkerr != VK_SUCCESS)
+    { return -1; }
+    return 0;
+}
+
+result_t _isDeviceSuitable(VkPhysicalDevice dvc) {
+    assert(dvc != NULL);
+    VkPhysicalDeviceProperties props;
+    VkPhysicalDeviceFeatures features;
+    
+    vkGetPhysicalDeviceProperties(dvc, &props);
+    vkGetPhysicalDeviceFeatures(dvc, &features);
+    return props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+}
+
+result_t _deviceHasExtensions(VkPhysicalDevice dvc, VulkanExtensions ext) {
+    result_t res = 1;
+    uint32_t extensionCount = 0;
+    VkResult vkerr = VK_SUCCESS;
+    VkExtensionProperties* props;
+
+    vkerr = vkEnumerateDeviceExtensionProperties(dvc, NULL, &extensionCount, NULL);
+    if (vkerr != VK_SUCCESS)
+    { return -1; }
+    props = malloc(sizeof(VkExtensionProperties) * extensionCount);
+    if (props == NULL) 
+    { return -1; }
+    vkerr = vkEnumerateDeviceExtensionProperties(dvc, NULL, &extensionCount, props);
+    for (uint32_t i = 0; i < ext->m_extensions.size; ++i) {
+        bool hasExtension = false;
+        for (uint32_t j = 0; j < extensionCount; ++j) {
+            if (strcmp(ext->m_extensions.data[i], props[j].extensionName))
+            { hasExtension = true; break; }
+        }
+        if (!hasExtension)
+        { res = 0; goto cleanup;  }
+    }
+cleanup:
+    free(props);
+    return res;
+}
+
+void DestroyVulkanDevices(VulkanDevices dvcs) {
+    if (dvcs == NULL)
+    { return; }
+    free_vector(&dvcs->m_available_devices);
+    free_extensions(dvcs->m_device_extensions);
+}
 
 VulkanContext CreateVulkanContext() {
     VulkanContext ctx = malloc(sizeof(VulkanContext_t));
@@ -17,26 +109,26 @@ error:
     return NULL;
 }
 
-GroubiksResult_t _setupExtensions(VulkanContext_t* ctx) {
-    GroubiksResult_t err = 0;
+result_t _setupExtensions(VulkanContext_t* ctx) {
+    result_t err = 0;
     /* setup extensions and validationlayers via initmanager */
-    ctx->m_extensions = CreateVulkanExtensions(VK_VALIDATIONLAYERS,
+    ctx->m_extensions = make_extensions(VK_VALIDATIONLAYERS,
         VK_NUM_VALIDATIONLAYERS,
         VK_EXTENSIONS,
         VK_NUM_EXTENSIONS);
     if (ctx->m_extensions == NULL) 
     { log_error("failed to initialize VulkanExtensions."); return -1; }
-    err = _setupGLFWExtensions(ctx->m_extensions);
+    err = _get_glfw_extensions(ctx->m_extensions);
     if (err != 0)
     { log_error("failed to setup Vulkan GLFW-extensions"); return -1; }
-    err = VulkanExtensions_VerifyValidationLayers(ctx->m_extensions);
+    err = _verify_validationlayers(ctx->m_extensions);
     if (err != 0) 
     { log_error("failed to verify Vulkan-validation-layers."); return -1; }
     return 0;
 }
 
-GroubiksResult_t _setupVulkanInstance(VulkanContext_t* ctx) {
-    GroubiksResult_t err = 0;
+result_t _setupVulkanInstance(VulkanContext_t* ctx) {
+    result_t err = 0;
     VkApplicationInfo appInfo;
     VkInstanceCreateInfo instanceCreateInfo;
     VkResult vkerr = VK_SUCCESS;
@@ -63,9 +155,9 @@ GroubiksResult_t _setupVulkanInstance(VulkanContext_t* ctx) {
     return 0;
 }
 
-GroubiksResult_t _setupDebugMessenger(VulkanContext_t* ctx) {
+result_t _setupDebugMessenger(VulkanContext_t* ctx) {
     /* initialize debugmessenger */
-    GroubiksResult_t err = 0;
+    result_t err = 0;
     VkResult vkerr = VK_SUCCESS;
     VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo;
 
@@ -92,8 +184,8 @@ GroubiksResult_t _setupDebugMessenger(VulkanContext_t* ctx) {
     return 0;
 }
 
-GroubiksResult_t _setupDevices(VulkanContext_t* ctx) {
-    GroubiksResult_t err = 0;
+result_t _setupDevices(VulkanContext_t* ctx) {
+    result_t err = 0;
     /* query devices and setup a picked device */
     ctx->m_devices = CreateVulkanDevices(ctx->m_instance,
             VK_DEVICE_EXTENSIONS,
@@ -107,7 +199,7 @@ GroubiksResult_t _setupDevices(VulkanContext_t* ctx) {
 }
 
 RenderContext VulkanContext_AddRenderContext(VulkanContext ctx, GLFWwindow* win) {
-    GroubiksResult_t err = 0;
+    result_t err = 0;
     RenderContext new_ctx = CreateRenderContext(win, ctx->m_instance, ctx->m_devices);
     if (new_ctx == NULL)
     { return NULL; }
@@ -120,9 +212,9 @@ error:
     return NULL;
 }
 
-GroubiksResult_t VulkanContext_Draw(VulkanContext ctx, RenderContext rndr_ctx) {
+result_t VulkanContext_Draw(VulkanContext ctx, RenderContext rndr_ctx) {
     uint32_t imageIndex;
-    GroubiksResult_t err = 0;
+    result_t err = 0;
     VkResult vkerr = VK_SUCCESS;
     VkSubmitInfo submitInfo;
     VkPresentInfoKHR presentInfo;
@@ -189,7 +281,7 @@ GroubiksResult_t VulkanContext_Draw(VulkanContext ctx, RenderContext rndr_ctx) {
 void DestroyVulkanContext(VulkanContext_t* ctx) {
     DestroyVulkanDevices(ctx->m_devices);
     _destroyDebugMessenger(ctx);
-    DestroyVulkanExtensions(ctx->m_extensions);
+    free_extensions(ctx->m_extensions);
     vector_for_each(RenderContext, &ctx->m_render_ctxs, r_ctx)
     { DestroyRenderContext(*r_ctx, ctx->m_instance); }
     free_vector(&ctx->m_render_ctxs);

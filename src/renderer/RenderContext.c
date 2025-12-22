@@ -29,7 +29,7 @@ error:
     return NULL;
 }
 
-GroubiksResult_t _setupSurface(RenderContext_t* rndr_ctx, GLFWwindow* win, VkInstance instance) {
+result_t _setupSurface(RenderContext_t* rndr_ctx, GLFWwindow* win, VkInstance instance) {
     VkResult vkerr = glfwCreateWindowSurface(instance, win, NULL, &rndr_ctx->m_surface);
     if (vkerr != VK_SUCCESS)
     { log_error("failed to create window-surface."); return -1; }
@@ -37,13 +37,13 @@ GroubiksResult_t _setupSurface(RenderContext_t* rndr_ctx, GLFWwindow* win, VkIns
     return 0;
 }
 
-GroubiksResult_t _setupActiveDevice(RenderContext rndr_ctx, VkInstance instance, VulkanDevices dvcs) {
+result_t _setupActiveDevice(RenderContext rndr_ctx, VkInstance instance, VulkanDevices dvcs) {
     assert(rndr_ctx != NULL && instance != VK_NULL_HANDLE && dvcs != NULL);
-    GroubiksResult_t err = 0;
+    result_t err = 0;
 
     vector_for_each(VkPhysicalDevice, &dvcs->m_available_devices, device)
     {
-        GroubiksResult_t hasExtensions = _deviceHasExtensions(*device, dvcs->m_device_extensions);
+        result_t hasExtensions = _deviceHasExtensions(*device, dvcs->m_device_extensions);
         if (hasExtensions == -1)
         { log_error("failed to setup suitable device."); return -1; }
         if (_isDeviceSuitable(*device) && hasExtensions)
@@ -61,8 +61,8 @@ GroubiksResult_t _setupActiveDevice(RenderContext rndr_ctx, VkInstance instance,
     return 0;
 }
 
-GroubiksResult_t _setupFrameBuffers(RenderContext rndr_ctx) {
-    GroubiksResult_t err = 0;
+result_t _setupFrameBuffers(RenderContext rndr_ctx) {
+    result_t err = 0;
     VkResult vkerr = VK_SUCCESS;
     rndr_ctx->m_framebuffers = make_vector(VkFramebuffer, NULL, rndr_ctx->m_swapchain->m_swapchain_imageviews.size, &err);
     if (err != 0)
@@ -113,7 +113,7 @@ void DestroyRenderContext(RenderContext_t* rndr_ctx, VkInstance instance) {
 }
 
 
-GroubiksResult_t RecordCommandBuffer(RenderContext rndr_ctx, VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+result_t RecordCommandBuffer(RenderContext rndr_ctx, VkCommandBuffer commandBuffer, uint32_t imageIndex) {
     VkCommandBufferBeginInfo commandBufferBeginInfo;
     VkResult vkerr = VK_SUCCESS;
     VkRenderPassBeginInfo renderPassBeginInfo;
