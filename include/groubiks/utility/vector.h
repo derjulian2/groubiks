@@ -13,22 +13,20 @@
  *
  *        vector_t(<name>) my_vec = make_vector(<name>, ...)
  * @details vectors can be defined for plain-old-data types as well as types that
- *          require a special function for copying, comparing or freeing, such as strings.
+ *          require a special function for copying, moving, comparing or freeing, such as strings.
  *          for these types, use:
- *          your_file.h : declare_vector(<type>, <name>) 
- *          your_file.c : define_vector(<type>, <name>)
+ *          your_file.h : declare_vector_non_pod(<type>, <name>) 
+ *          your_file.c : define_vector_non_pod(<type>, <name>)
  *                        <returntype> vector_copy_value_fn(<name>)(<params>) { ... }
+ *                        <returntype> vector_move_value_fn(<name>)(<params>) { ... }
  *                        <returntype> vector_free_value_fn(<name>)(<params>) { ... }
  *                        <returntype> vector_compare_values_fn(<name>) { ... }
- *          where you define 3 predicate-functions used by the vector. see the documentation of:
+ *          where you define 4 predicate-functions used by the vector. see the documentation of:
  *          1.) vector_copy_value_fn(<type>)
- *          2.) vector_free_value_fn(<type>)
- *          3.) vector_compare_values_fn(<type>)
+ *          2.) vector_move_value_fn(<type>)
+ *          3.) vector_free_value_fn(<type>)
+ *          4.) vector_compare_values_fn(<type>)
  *          for details about the signatures.
- * @todo maybe widen control over copy/move operations that users can take when passing
- *       their own copy/move methods, as assignment is still implemented with plain memcpy.
- *       this is ok for most stuff, but if elements e.g. need info about their address upon construction,
- *       this implementation can offer only limited support.
  */
  
 #include <stdlib.h>
@@ -38,6 +36,9 @@
 #include <assert.h>
 #if __STDC_VERSION__ >= 202311L
 #include <stdbit.h>
+#endif
+#ifdef __MSC_VER
+#include <intrin.h>
 #endif
 #ifdef BUILD_TESTS
 #include <stdio.h>
@@ -62,6 +63,7 @@ typedef size_t vector_index_t;
 #define vector(name) _##name##_vector
 #define vector_t(name) _##name##_vector_t
 #define vector_iterator_t(name) _##name##_vector_iterator_t
+#define vector_const_iterator_t(name) _##name##_vector_const_iterator_t
 /**
  * @brief this macro provides the name of the function that will be used by the vector
  *        to copy two instances of the value-type in internal operations. 
@@ -72,9 +74,18 @@ typedef size_t vector_index_t;
 #define vector_copy_value_fn(name) _##name##_vector_copy_value
 /**
  * @brief this macro provides the name of the function that will be used by the vector
+ *        to move an instance of the value-type from one place to another in internal operations. 
+ *        your definition of this move-method must meet the following signature:
+ *          void vector_move_value_fn(<name>)(<type>* dest, <type>* src) { ... }
+ *        this operation should not fail.
+ */
+#define vector_move_value_fn(name) _##name##_vector_move_value
+/**
+ * @brief this macro provides the name of the function that will be used by the vector
  *        to free an instance of the value-type in internal operations. 
  *        your definition of this free-method must meet the following signature:
  *          void vector_free_value_fn(<name>)(<type>* ptr) { ... }
+ *        this operation should not fail.
  */
 #define vector_free_value_fn(name) _##name##_vector_free_value
 /**
@@ -120,6 +131,14 @@ typedef size_t vector_index_t;
 #define vector_erase_range(name, vec, idx, num, err) _##name##_vector_erase(vec, idx, num, err)
 #define vector_erase(name, vec, idx, err) vector_erase_range(name, vec, idx, 1, err)
 /**
+ * @brief reserves memory for <sz> elements. does nothing if <sz> is smaller than the current capacity.
+ */
+#define vector_reserve(name, vec, sz, err) _##name##_vector_reserve(vec, sz, err)
+/**
+ * @brief shrinks buffer to fit exactly to the current element-count. 
+ */
+#define vector_shrink_to_fit(name, vec, err) _##name##_vector_shrink_to_fit(vec, err)
+/**
  * @brief zeroes all elements in the vector, without freeing or reallocating any data. use with caution.
  */
 #define vector_zero(vec) memset((vec)->data, 0, sizeof(*(vec)->data) * (vec)->size)
@@ -146,6 +165,10 @@ typedef size_t vector_index_t;
 for (vector_iterator_t(name) iter = vector_begin(vec); \
     iter != vector_end(vec);  \
     ++iter)
+#define vector_const_for_each(name, vec, iter)  \
+for (vector_const_iterator_t(name) iter = vector_begin(vec); \
+    iter != vector_end(vec);  \
+    ++iter)
 /**
  * @brief erases data owned by the vector. can safely free a null-vector.
  */
@@ -165,7 +188,7 @@ for (vector_iterator_t(name) iter = vector_begin(vec); \
  *          power-of-two of the currently needed size to hold all elements.
  * @{
  */
-
+#define _vector_grow_cap(sz) 1ull << (1ull + msb(sz))
 /**
  * @brief   tries to use fast instructions of bit-manipulation to determine
  *          the location of the most-significant bit of a number.
@@ -179,7 +202,7 @@ static inline int msb(uint64_t n) {
     return 63 - __builtin_clzll(n);
 #elif defined(__MSC_VER)
     unsigned long long res;
-    _BitScanReverse64(&res, n)
+    _BitScanReverse64(&res, n);
     return res;
 #else
     /**
@@ -210,14 +233,17 @@ struct _##name##_vector { \
     size_t capacity; \
 }; \
 typedef struct _##name##_vector _##name##_vector_t; \
-typedef type* _##name##_vector_iterator_t;
+typedef type* _##name##_vector_iterator_t; \
+typedef const type* _##name##_vector_const_iterator_t;
 
 #define _decl_vector_value_functions_non_pod(type, name) \
 bool _##name##_vector_copy_value(type* dest, const type* src); \
+void _##name##_vector_move_value(type* dest, type* src); \
 void _##name##_vector_free_value(type* ptr); \
 
 #define _decl_vector_internal_functions_non_pod(type, name) \
 bool _##name##_vector_copy_values(type* dest, const type* src, size_t num); \
+void _##name##_vector_move_values(type* dest, type* src, size_t num); \
 void _##name##_vector_free_values(type* ptr, size_t num); \
 
 #define _decl_vector_special_functions(type, name) \
@@ -228,7 +254,9 @@ void _##name##_free_vector(vector_t(name)* vec);
 vector_iterator_t(name) _##name##_vector_insert(vector_t(name)* vec, vector_index_t idx, const type* src, size_t num, vector_result_t* err); \
 vector_iterator_t(name) _##name##_vector_insert_value(vector_t(name)* vec, vector_index_t idx, const type val, vector_result_t* err); \
 vector_iterator_t(name) _##name##_vector_erase(vector_t(name)* vec, vector_index_t idx, size_t num, vector_result_t* err); \
-void _##name##_vector_resize(vector_t(name)* vec, size_t sz, vector_result_t* err);
+void _##name##_vector_resize(vector_t(name)* vec, size_t sz, vector_result_t* err); \
+void _##name##_vector_reserve(vector_t(name)* vec, size_t sz, vector_result_t* err); \
+void _##name##_vector_shrink_to_fit(vector_t(name)* vec, vector_result_t* err);
 
 #define _decl_vector_search_functions(type, name) \
 vector_iterator_t(name) _##name##_vector_find(vector_t(name)* vec, const type val); \
@@ -248,18 +276,25 @@ bool _##name##_vector_compare_values(const type* a, const type* b);
 #define _def_vector_internal_functions_non_pod(type, name) \
 bool \
 _##name##_vector_copy_values(type* dest, const type* src, size_t num) { \
-    bool err = 0; \
+    bool err = false; \
     size_t i; \
     for (i = 0; i < num; ++i) { \
         if (vector_copy_value_fn(name)(&dest[i], &src[i]) != 0) \
-        { err = 1; break; } \
+        { err = true; break; } \
     } \
     /* cleanup if construction of single elements fails halfway through */ \
     if (err) { \
         _##name##_vector_free_values(dest, i); \
-        return -1; \
+        return VECTOR_ERROR; \
     } \
-    return 0; \
+    return VECTOR_SUCCESS; \
+} \
+\
+void \
+_##name##_vector_move_values(type* dest, type* src, size_t num) { \
+    for (size_t i = 0; i < num; ++i) { \
+        vector_move_value_fn(name)(&dest[i], &src[i]); \
+    } \
 } \
 \
 void \
@@ -282,7 +317,7 @@ _##name##_vector_free_values(type* ptr, size_t num) { \
 vector_t(name) \
 _##name##_make_vector(const type* data, size_t num, vector_result_t* err) { \
     if (!num) { return null_vector(name); } \
-    size_t cap = 1 << (1 + msb(num)); \
+    size_t cap = _vector_grow_cap(num); \
     vector_t(name) tmp = { \
         .data = malloc(sizeof(type) * cap), \
         .size = num, \
@@ -306,7 +341,7 @@ _##name##_free_vector(vector_t(name)* vec) { \
 vector_t(name) \
 _##name##_make_vector(const type* data, size_t num, vector_result_t* err) { \
     if (!num) { return null_vector(name); } \
-    size_t cap = 1 << (1 + msb(num)); \
+    size_t cap = _vector_grow_cap(num); \
     vector_t(name) tmp = { \
         .data = malloc(sizeof(type) * cap), \
         .size = num, \
@@ -350,7 +385,7 @@ vector_iterator_t(name) _##name##_vector_insert(vector_t(name)* vec, \
     /* determine if reallocate is required. */ \
     if (vec->size + num > vec->capacity) { \
         /* determine new capacity and try to allocate for it. */ \
-        size_t cap = 1 << (1 + msb(vec->size + num)); \
+        size_t cap = _vector_grow_cap(vec->size + num); \
         type* ptr = malloc(sizeof(type) * cap); \
         if (ptr == NULL) { goto error; } \
         /* copy over elements all existing elements. */ \
@@ -409,7 +444,7 @@ void _##name##_vector_resize(vector_t(name)* vec, \
     /* determine if reallocate is required. */ \
     if (sz > vec->capacity) { \
         /* determine new capacity and try to allocate for it. */ \
-        size_t cap = 1 << (1 + msb(sz)); \
+        size_t cap = _vector_grow_cap(sz); \
         type* ptr = malloc(sizeof(type) * cap); \
         if (ptr == NULL) { goto error; } \
         /* copy over existing elements */ \
@@ -421,6 +456,44 @@ void _##name##_vector_resize(vector_t(name)* vec, \
     } \
     vec->size = sz; \
 success: \
+    if (err) { *err = VECTOR_SUCCESS; } \
+    return; \
+error: \
+    if (err) { *err = VECTOR_ERROR; } \
+    return; \
+} \
+\
+void \
+_##name##_vector_reserve(vector_t(name)* vec, size_t sz, vector_result_t* err) { \
+    assert(vec); \
+    /* determine if reallocate is required. */ \
+    if (vec->capacity >= sz) { return; } \
+    type* ptr = malloc(sizeof(type) * sz); \
+    if (ptr == NULL) { goto error; } \
+    /* copy over all elements. */ \
+    memcpy(ptr, vec->data, sizeof(type) * vec->size); \
+    /* free the old buffer and assign. */ \
+    free(vec->data); \
+    vec->data = ptr; \
+    vec->capacity = sz; \
+    if (err) { *err = VECTOR_SUCCESS; } \
+    return; \
+error: \
+    if (err) { *err = VECTOR_ERROR; } \
+    return; \
+} \
+\
+void \
+_##name##_vector_shrink_to_fit(vector_t(name)* vec, vector_result_t* err) { \
+    assert(vec); \
+    type* ptr = malloc(sizeof(type) * vec->size); \
+    if (ptr == NULL) { goto error; } \
+    /* copy over all elements. */ \
+    memcpy(ptr, vec->data, sizeof(type) * vec->size); \
+    /* free the old buffer and assign. */ \
+    free(vec->data); \
+    vec->data = ptr; \
+    vec->capacity = vec->size; \
     if (err) { *err = VECTOR_SUCCESS; } \
     return; \
 error: \
@@ -438,27 +511,38 @@ vector_iterator_t(name) _##name##_vector_insert(vector_t(name)* vec, \
     /* determine if reallocate is required. */ \
     if (vec->size + num > vec->capacity) { \
         /* determine new capacity and try to allocate for it. */ \
-        size_t cap = 1 << (1 + msb(vec->size + num)); \
+        size_t cap = _vector_grow_cap(vec->size + num); \
         type* ptr = malloc(sizeof(type) * cap); \
         if (ptr == NULL) { goto error; } \
-        /* copy over elements all existing elements. */ \
-        memcpy(ptr, \
+        /* move over elements all existing elements. */ \
+        _##name##_vector_move_values(ptr, \
                vec->data, \
-               sizeof(type) * vec->size); \
+               vec->size); \
+        /* move all elements after the to-be-inserted range down. */ \
+        _##name##_vector_move_values(ptr + (idx + num), \
+            ptr + idx, \
+            vec->size - idx); \
+        /* copy the to-be-inserted range over. */ \
+        if (_##name##_vector_copy_values(ptr + idx, src, num) != 0) { free(ptr); goto error; } \
         /* free the old buffer and assign. */ \
         free(vec->data); \
         vec->data = ptr; \
         vec->capacity = cap; \
     } \
-    /* move all elements after the to-be-inserted range down. */ \
-    memmove(vec->data + (idx + num), \
+    else { \
+        /* move all elements after the to-be-inserted range down. */ \
+        _##name##_vector_move_values(vec->data + (idx + num), \
             vec->data + idx, \
-            sizeof(type) * (vec->size - idx)); \
-    /* copy the to-be-inserted range over. */ \
-    /* if this fails here, capacity of the vector is expanded (maybe without the caller knowing). */ \
-    /* probably negligable, but to stay true to the contract that failure doesn't */ \
-    /* alter the caller's vector, this should be fixed. i am too tired for that right now though. */ \
-    if (_##name##_vector_copy_values(vec->data + idx, src, num) != 0) { goto error; } \
+            vec->size - idx); \
+        /* copy the to-be-inserted range over. */ \
+        if (_##name##_vector_copy_values(vec->data + idx, src, num) != 0) { \
+            /* move elements back to their original positions on copy-error. */ \
+            _##name##_vector_move_values(vec->data + idx, \
+                vec->data + (idx + num), \
+                vec->size - idx); \
+            goto error; \
+        } \
+    } \
     vec->size = vec->size + num; \
 success: \
     if (err) { *err = VECTOR_SUCCESS; } \
@@ -484,9 +568,9 @@ vector_iterator_t(name) _##name##_vector_erase(vector_t(name)* vec, \
     /* cleanup elements within the to-be-erased range. */ \
     _##name##_vector_free_values(vec->data + idx, num); \
     /* overwrite existing elements with elements after the to-be-erased range. */ \
-    memmove(vec->data + idx, \
+    _##name##_vector_move_values(vec->data + idx, \
            vec->data + (idx + num), \
-           sizeof(type) * (vec->size - num - idx)); \
+           vec->size - num - idx); \
     vec->size = vec->size - num; \
     return vector_at(vec, idx); \
 } \
@@ -500,11 +584,11 @@ void _##name##_vector_resize(vector_t(name)* vec, \
     /* determine if reallocate is required. */ \
     if (sz > vec->capacity) { \
         /* determine new capacity and try to allocate for it. */ \
-        size_t cap = 1 << (1 + msb(sz)); \
+        size_t cap = _vector_grow_cap(sz); \
         type* ptr = malloc(sizeof(type) * cap); \
         if (ptr == NULL) { goto error; } \
-        /* copy over existing elements. */ \
-        memcpy(ptr, vec->data, sizeof(type) * vec->size); \
+        /* move over existing elements. */ \
+        _##name##_vector_move_values(ptr, vec->data, vec->size); \
         /* free the old buffer and assign. */ \
         free(vec->data); \
         vec->data = ptr; \
@@ -516,6 +600,43 @@ void _##name##_vector_resize(vector_t(name)* vec, \
     } \
     vec->size = sz; \
 success: \
+    if (err) { *err = VECTOR_SUCCESS; } \
+    return; \
+error: \
+    if (err) { *err = VECTOR_ERROR; } \
+    return; \
+} \
+void \
+_##name##_vector_reserve(vector_t(name)* vec, size_t sz, vector_result_t* err) { \
+    assert(vec); \
+    /* determine if reallocate is required. */ \
+    if (vec->capacity >= sz) { return; } \
+    type* ptr = malloc(sizeof(type) * sz); \
+    if (ptr == NULL) { goto error; } \
+    /* move over all elements. */ \
+    _##name##_vector_move_values(ptr, vec->data, vec->size); \
+    /* free the old buffer and assign. */ \
+    free(vec->data); \
+    vec->data = ptr; \
+    vec->capacity = sz; \
+    if (err) { *err = VECTOR_SUCCESS; } \
+    return; \
+error: \
+    if (err) { *err = VECTOR_ERROR; } \
+    return; \
+} \
+\
+void \
+_##name##_vector_shrink_to_fit(vector_t(name)* vec, vector_result_t* err) { \
+    assert(vec); \
+    type* ptr = malloc(sizeof(type) * vec->size); \
+    if (ptr == NULL) { goto error; } \
+    /* move over all elements. */ \
+    _##name##_vector_move_values(ptr, vec->data, vec->size); \
+    /* free the old buffer and assign. */ \
+    free(vec->data); \
+    vec->data = ptr; \
+    vec->capacity = vec->size; \
     if (err) { *err = VECTOR_SUCCESS; } \
     return; \
 error: \
@@ -601,9 +722,10 @@ _decl_vector_search_functions(type, name)
  *        for value-types with special-characters or qualifiers as e.g. pointers.
  *
  *        if you declare a vector with this macro you also want to define
- *        three other functions to let the vector know how your type operates.
+ *        four other functions to let the vector know how your type operates.
  *        see the documentation for:
  *        - vector_copy_value_fn(<name>)
+ *        - vector_move_value_fn(<name>)
  *        - vector_free_value_fn(<name>)
  *        - vector_compare_values_fn(<name>)
  *
