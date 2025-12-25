@@ -14,6 +14,7 @@ VulkanDevices CreateVulkanDevices(VkInstance instance, const char** extensionNam
     VulkanDevices dvcs = malloc(sizeof(VulkanDevices_t));
     if (dvcs == NULL)
     { return NULL; }
+    
     memzero(*dvcs);
     dvcs->m_device_extensions = make_extensions(
             VK_VALIDATIONLAYERS, VK_NUM_VALIDATIONLAYERS,

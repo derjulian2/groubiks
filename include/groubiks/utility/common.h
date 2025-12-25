@@ -30,8 +30,6 @@ declare_vector(cstring_t);
 declare_vector(const_cstring_t);
 declare_vector(uint32_t);
 
-define_vector_default_compare_predicate(uint32_t);
-
 #define memzero(obj) memset(&obj, 0, sizeof(obj))
 
 #define clamp(v, lo, hi) _Generic (v, \
