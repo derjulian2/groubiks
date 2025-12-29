@@ -1,6 +1,16 @@
 
 #include <groubiks/utility/vector.h>
 
+#ifdef BUILD_TESTS
+
+/**
+ * @file vector.c
+ * @date 29/12/25
+ * @author Julian Benzel
+ * @brief vector.h unit-test.
+ */
+
+/* print-utilites */
 #define print_int_vec(fno, vec) \
 fprintf(fno, #vec" capacity: %lu, size: %lu, [ ", vec.capacity, vec.size); \
 for (int i = 0; i < vec.size; ++i) { \
@@ -15,37 +25,54 @@ for (int i = 0; i < vec.size; ++i) { \
 } \
 fprintf(fno, "]\n");
 
-#ifdef BUILD_TESTS
-declare_vector(int, int);
-declare_vector_non_pod(char*, str);
+/**
+ * @brief integer-vector, declaration and definition.
+ */
+declare_vector(int, i32);
+define_vector(int, i32);
 
-define_vector(int, int);
-define_vector_non_pod(char*, str);
+/**
+ * @brief string-vector, declaration and definition with special functions.
+ */
 
-bool vector_copy_value_fn(str)(char** dest, const char** src) {
+vector_result_t _copy_cstr(char** dest, const char** src) {
     assert(dest && src);
-    return (*dest = strdup(*src)) == NULL;
+    return (*dest = strdup(*src)) == NULL ? VECTOR_ERROR : VECTOR_SUCCESS;
 }
 
-void vector_move_value_fn(str)(char** dest, char** src) {
+void _move_cstr(char** dest, char** src) {
     assert(dest && src);
     *dest = *src;
 }
 
-void vector_free_value_fn(str)(char** ptr) {
+void _free_cstr(char** ptr) {
     assert(ptr);
     free(*ptr);
 }
 
-bool vector_compare_values_fn(str)(const char** a, const char** b) {
+bool _comp_cstr(const char** a, const char** b) {
     assert(a && b);
     return strcmp(*a, *b) == 0;
 }
 
-int cmp(const int* a, const int* b) { 
+/* all functions passed to the vector. */
+declare_vector(char*, cstr);
+define_vector(char*, cstr, &_copy_cstr, &_move_cstr, &_free_cstr, &_comp_cstr);
+
+/* predicates for qsort. */
+int cmpi(const int* a, const int* b) { 
     assert(a && b);
     if (*a < *b) { return -1; }
-    if (*a > *b) { return 1; }
+    else if (*a > *b) { return 1; }
+    return 0;
+}
+
+int cmps(const char** a, const char** b) {
+    assert(a && b);
+    size_t len_a = strlen(*a);
+    size_t len_b = strlen(*b);
+    if (len_a < len_b) { return -1; }
+    else if (len_a > len_b) { return 1; }
     return 0;
 }
 
@@ -59,47 +86,47 @@ int vector_test(FILE* fno) {
 
     int data[] = { 1, 2, 3, 4, 5 };
 
-    vector_t(int) vec_1 = make_vector(int, &data[0], 5, &err);
+    vector_t(i32) vec_1 = make_vector(i32, &data[0], 5, &err);
     /* [ 1 2 3 4 5 ] */
     print_int_vec(stdout, vec_1);
 
-    vector_insert(int, &vec_1, 2, 69, &err);
-    vector_push_back(int, &vec_1, 420, &err);
-    vector_insert_range(int, &vec_1, 0, &data[2], 2, &err);
+    vector_insert(i32, &vec_1, 2, 69, &err);
+    vector_push_back(i32, &vec_1, 420, &err);
+    vector_insert_range(i32, &vec_1, 0, &data[2], 2, &err);
 
     /* [ 3 4 1 2 69 3 4 5 420 ] */
     print_int_vec(stdout, vec_1);
 
-    vector_t(int) uniq = vector_uniques(int, &vec_1);
+    vector_t(i32) uniq = vector_uniques(i32, &vec_1);
     /* [ 3 4 1 2 69 5 420 ]*/
     print_int_vec(stdout, uniq);
 
-    vector_erase(int, &vec_1, 2, &err);
-    vector_erase_range(int, &vec_1, 1, 2, &err);
+    vector_erase(i32, &vec_1, 2, &err);
+    vector_erase_range(i32, &vec_1, 1, 2, &err);
 
     /* [ 3 69 3 4 5 420 ] */
     print_int_vec(stdout, vec_1);
 
     fprintf(fno, "vector contains 420 : %d at %d\n", 
-        vector_contains(int, &vec_1, 420),
-        (int)vector_index(&vec_1, vector_find(int, &vec_1, 420)));
+        vector_contains(i32, &vec_1, 420),
+        (int)vector_index(&vec_1, vector_find(i32, &vec_1, 420)));
     fprintf(fno, "vector contains 512 : %d at %d\n", 
-        vector_contains(int, &vec_1, 512),
-        (int)vector_index(&vec_1, vector_find(int, &vec_1, 512)));
+        vector_contains(i32, &vec_1, 512),
+        (int)vector_index(&vec_1, vector_find(i32, &vec_1, 512)));
 
-    vector_resize(int, &vec_1, 2, &err);
+    vector_resize(i32, &vec_1, 2, &err);
 
     /* [ 3 69 ] */
     print_int_vec(fno, vec_1);
 
-    vector_resize(int, &vec_1, 4, &err);
+    vector_resize(i32, &vec_1, 4, &err);
     memset(vector_at(&vec_1, 2), 0, sizeof(int) * 2);
 
     /* [ 3 69 0 0 ]*/
     print_int_vec(fno, vec_1);
 
-    free_vector(int, &uniq);
-    free_vector(int, &vec_1);
+    free_vector(i32, &uniq);
+    free_vector(i32, &vec_1);
 
     /**
      * @}
@@ -109,25 +136,24 @@ int vector_test(FILE* fno) {
      * @name non-pod vector test: strings
      * @{
      */
-
     const char* strings[] = { "iltam", "sumra", "rashupti" };
 
-    vector_t(str) string_vec = make_vector(str, &strings[0], 3, &err);
+    vector_t(cstr) string_vec = make_vector(cstr, &strings[0], 3, &err);
     
     print_str_vec(stdout, string_vec);
 
-    vector_push_back(str, &string_vec, "sus", &err);
-    vector_push_back(str, &string_vec, "galileel", &err);
+    vector_push_back(cstr, &string_vec, "sus", &err);
+    vector_push_back(cstr, &string_vec, "galileel", &err);
 
     print_str_vec(stdout, string_vec);
-    vector_resize(str, &string_vec, 2, &err);
+    vector_resize(cstr, &string_vec, 2, &err);
     print_str_vec(stdout, string_vec);
-    vector_reserve(str, &string_vec, 20, &err);
+    vector_reserve(cstr, &string_vec, 20, &err);
     print_str_vec(stdout, string_vec);
-    vector_shrink_to_fit(str, &string_vec, &err);
+    vector_shrink_to_fit(cstr, &string_vec, &err);
     print_str_vec(stdout, string_vec);
 
-    free_vector(str, &string_vec);
+    free_vector(cstr, &string_vec);
     
     /**
      * @}

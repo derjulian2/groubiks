@@ -10,12 +10,13 @@ find_package(glfw3 REQUIRED)
 option(BUILD_VULKAN_RENDERER OFF)
 option(BUILD_TESTS OFF)
 
-set(BUILD_VULKAN_RENDERER OFF)
-set(BUILD_TESTS ON)
+set(BUILD_VULKAN_RENDERER ON)
+set(BUILD_TESTS OFF)
 
 set(GROUBIKS_SOURCES
-    "main.c"
-    "Application.c")
+    #"main.cpp"
+    #"groubiks.cpp"
+)
 
 set(GROUBIKS_ROOT_DIR
     ${CMAKE_CURRENT_SOURCE_DIR})

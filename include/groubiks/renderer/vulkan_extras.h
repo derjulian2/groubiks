@@ -16,12 +16,12 @@
 #include <groubiks/utility/log.h>
 #include <groubiks/compile_config.h>
 
-declare_vector(VkLayerProperties);
-declare_vector(VkExtensionProperties);
+declare_vector(VkLayerProperties, VkLayerProps);
+declare_vector(VkExtensionProperties, VkExtProps);
 
 struct vk_extras {
-    vector_t(cstring_t) m_validationlayers;
-    vector_t(cstring_t) m_extensions;
+    vector_t(str) m_validationlayers;
+    vector_t(str) m_extensions;
 };
 
 groubiks_result_t vk_extras_get_glfw(struct vk_extras* pExt);
@@ -29,7 +29,7 @@ groubiks_result_t vk_extras_get_glfw(struct vk_extras* pExt);
 groubiks_result_t vk_extras_match_instance(const struct vk_extras* pExt);
 groubiks_result_t vk_extras_match_device(const struct vk_extras* pExt, VkPhysicalDevice device);
 
-groubiks_result_t vk_extras_check_layers(const vector_t(cstring_t)* pRequestedLayers, const vector_t(VkLayerProperties)* pLayers);
-groubiks_result_t vk_extras_check_extensions(const vector_t(cstring_t)* pRequestedExtensions, const vector_t(VkExtensionProperties)* pExtensions);
+groubiks_result_t vk_extras_check_layers(const vector_t(str)* pRequestedLayers, const vector_t(VkLayerProps)* pLayers);
+groubiks_result_t vk_extras_check_extensions(const vector_t(str)* pRequestedExtensions, const vector_t(VkExtProps)* pExtensions);
 
 #endif

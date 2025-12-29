@@ -4,29 +4,18 @@
 
 /**
  * @file vector.h
- * @date 24/12/2025
+ * @date 29/12/2025
  * @author Julian Benzel
- * @brief type-generic dynamically-sized array data-structure. 
+ * @brief type-generic dynamically-sized array data-structure implemented with macros.
  *        usage:
  *        your_file.h : declare_vector(<type>, <name>)
- *        your_file.c : define_vector(<type>, <name>)
+ *        your_file.c : define_vector(<type>, <name>, <optional params>)
  *
  *        vector_t(<name>) my_vec = make_vector(<name>, ...)
- * @details vectors can be defined for plain-old-data types as well as types that
- *          require a special function for copying, moving, comparing or freeing, such as strings.
- *          for these types, use:
- *          your_file.h : declare_vector_non_pod(<type>, <name>) 
- *          your_file.c : define_vector_non_pod(<type>, <name>)
- *                        <returntype> vector_copy_value_fn(<name>)(<params>) { ... }
- *                        <returntype> vector_move_value_fn(<name>)(<params>) { ... }
- *                        <returntype> vector_free_value_fn(<name>)(<params>) { ... }
- *                        <returntype> vector_compare_values_fn(<name>) { ... }
- *          where you define 4 predicate-functions used by the vector. see the documentation of:
- *          1.) vector_copy_value_fn(<type>)
- *          2.) vector_move_value_fn(<type>)
- *          3.) vector_free_value_fn(<type>)
- *          4.) vector_compare_values_fn(<type>)
- *          for details about the signatures.
+ *
+ *        const-qualified value-types are not supported.
+ *        this header will probably macro-clash with std::vector in C++.
+ *        use #include <vector_undef.h> to undef all vector-related macros.
  */
  
 #include <stdlib.h>
@@ -64,38 +53,6 @@ typedef size_t vector_index_t;
 #define vector_t(name) _##name##_vector_t
 #define vector_iterator_t(name) _##name##_vector_iterator_t
 #define vector_const_iterator_t(name) _##name##_vector_const_iterator_t
-/**
- * @brief this macro provides the name of the function that will be used by the vector
- *        to copy two instances of the value-type in internal operations. 
- *        your definition of this copy-method must meet the following signature:
- *          bool vector_copy_value_fn(<name>)(<type>* dest, const <type>* src) { ... }
- *        where a return value of 0 is considered a successful copy and anything else an error.
- */
-#define vector_copy_value_fn(name) _##name##_vector_copy_value
-/**
- * @brief this macro provides the name of the function that will be used by the vector
- *        to move an instance of the value-type from one place to another in internal operations. 
- *        your definition of this move-method must meet the following signature:
- *          void vector_move_value_fn(<name>)(<type>* dest, <type>* src) { ... }
- *        this operation should not fail.
- */
-#define vector_move_value_fn(name) _##name##_vector_move_value
-/**
- * @brief this macro provides the name of the function that will be used by the vector
- *        to free an instance of the value-type in internal operations. 
- *        your definition of this free-method must meet the following signature:
- *          void vector_free_value_fn(<name>)(<type>* ptr) { ... }
- *        this operation should not fail.
- */
-#define vector_free_value_fn(name) _##name##_vector_free_value
-/**
- * @brief this macro provides the name of the function that will be used by the vector
- *        to compare two instances of the value-type in internal operations. 
- *        your definition of this compare-method must meet the following signature:
- *          bool vector_compare_values_fn(<name>)(const <type>* a, const <type>* b) { ... }
- *        where a return value of 1 indicates equality between a and b.
- */
-#define vector_compare_values_fn(name) _##name##_vector_compare_values
 /**
  * @brief creates a vector of size `num` and can optionally initialize with the data stored in `data`.
  */
@@ -226,7 +183,7 @@ static inline int msb(uint64_t n) {
  * @{
  */
 
- #define _decl_vector_struct(type, name) \
+#define _decl_vector_struct(type, name) \
 struct _##name##_vector { \
     type* data; \
     size_t size; \
@@ -236,10 +193,22 @@ typedef struct _##name##_vector _##name##_vector_t; \
 typedef type* _##name##_vector_iterator_t; \
 typedef const type* _##name##_vector_const_iterator_t;
 
-#define _decl_vector_value_functions_non_pod(type, name) \
-bool _##name##_vector_copy_value(type* dest, const type* src); \
-void _##name##_vector_move_value(type* dest, type* src); \
-void _##name##_vector_free_value(type* ptr); \
+/**
+ * @brief global, per-name function-pointers to user-provided functionality.
+ * @details some of these are declared but not defined for pod-types,
+ *          however the define_vector()-macro is constructed to not allow
+ *          any scenario in which a function is used but not defined.
+ *          if the user passes NULL, that is allowed for the comparison-function
+ *          (if the value-type is not comparable), but this will hit an assert
+ *          if any search-function is called, because it requires a comparable type.
+ */
+#define _decl_vector_value_function_ptrs_non_pod(type, name) \
+extern vector_result_t(* const _##name##_vector_copy_fn)(type*, const type*); \
+extern void(* const _##name##_vector_move_fn)(type*, type*); \
+extern void(* const _##name##_vector_free_fn)(type*);
+
+#define _decl_vector_value_compare_function_ptr(type, name) \
+extern bool(* const _##name##_vector_comp_fn)(const type*, const type*);
 
 #define _decl_vector_internal_functions_non_pod(type, name) \
 bool _##name##_vector_copy_values(type* dest, const type* src, size_t num); \
@@ -261,25 +230,31 @@ void _##name##_vector_shrink_to_fit(vector_t(name)* vec, vector_result_t* err);
 #define _decl_vector_search_functions(type, name) \
 vector_iterator_t(name) _##name##_vector_find(vector_t(name)* vec, const type val); \
 bool _##name##_vector_contains(vector_t(name)* vec, const type val); \
-vector_t(name) _##name##_vector_uniques(vector_t(name)* vec); \
-bool _##name##_vector_compare_values(const type* a, const type* b);
+vector_t(name) _##name##_vector_uniques(vector_t(name)* vec);
 
 /**
  * @}
  */
 
 /**
- * @name internal bulk-copying and freeing for non-plain-old-data types:
+ * @name defining user-provided function-pointers, 
+ *       internal bulk-copying and freeing for non-plain-old-data types:
  * @{
  */
+
+#define _def_vector_value_function_ptrs_non_pod(type, name, copy_fn, move_fn, free_fn) \
+vector_result_t(* const _##name##_vector_copy_fn)(type*, const type*) = copy_fn; \
+void(* const _##name##_vector_move_fn)(type*, type*) = move_fn; \
+void(* const _##name##_vector_free_fn)(type*) = free_fn;
 
 #define _def_vector_internal_functions_non_pod(type, name) \
 bool \
 _##name##_vector_copy_values(type* dest, const type* src, size_t num) { \
+    assert(_##name##_vector_copy_fn != NULL); \
     bool err = false; \
     size_t i; \
     for (i = 0; i < num; ++i) { \
-        if (vector_copy_value_fn(name)(&dest[i], &src[i]) != 0) \
+        if (_##name##_vector_copy_fn(&dest[i], &src[i]) != VECTOR_SUCCESS) \
         { err = true; break; } \
     } \
     /* cleanup if construction of single elements fails halfway through */ \
@@ -292,15 +267,26 @@ _##name##_vector_copy_values(type* dest, const type* src, size_t num) { \
 \
 void \
 _##name##_vector_move_values(type* dest, type* src, size_t num) { \
-    for (size_t i = 0; i < num; ++i) { \
-        vector_move_value_fn(name)(&dest[i], &src[i]); \
+    assert(_##name##_vector_move_fn != NULL); \
+    /* on overlap, do a backwards-loop. */ \
+    if (dest < src && (dest + num >= src) || \
+        dest > src && (src + num >= dest)) { \
+        for (size_t i = 0; i < num; ++i) { \
+            _##name##_vector_move_fn(&dest[num - i - 1], &src[num - i - 1]); \
+        } \
+    } \
+    else { \
+        for (size_t i = 0; i < num; ++i) { \
+            _##name##_vector_move_fn(&dest[i], &src[i]); \
+        } \
     } \
 } \
 \
 void \
 _##name##_vector_free_values(type* ptr, size_t num) { \
+    assert(_##name##_vector_free_fn != NULL); \
     for (size_t i = 0; i < num; ++i) { \
-        vector_free_value_fn(name)(&ptr[i]); \
+        _##name##_vector_free_fn(&ptr[i]); \
     } \
 }
 
@@ -514,16 +500,20 @@ vector_iterator_t(name) _##name##_vector_insert(vector_t(name)* vec, \
         size_t cap = _vector_grow_cap(vec->size + num); \
         type* ptr = malloc(sizeof(type) * cap); \
         if (ptr == NULL) { goto error; } \
-        /* move over elements all existing elements. */ \
-        _##name##_vector_move_values(ptr, \
-               vec->data, \
-               vec->size); \
+        /* copy over elements all existing elements. */ \
+        if (_##name##_vector_copy_values(ptr, (const type*)vec->data, vec->size) != VECTOR_SUCCESS) { \
+            free(ptr); \
+            goto error; \
+        }; \
         /* move all elements after the to-be-inserted range down. */ \
-        _##name##_vector_move_values(ptr + (idx + num), \
-            ptr + idx, \
-            vec->size - idx); \
+        _##name##_vector_move_values(ptr + (idx + num), ptr + idx, vec->size - idx); \
         /* copy the to-be-inserted range over. */ \
-        if (_##name##_vector_copy_values(ptr + idx, src, num) != 0) { free(ptr); goto error; } \
+        if (_##name##_vector_copy_values(ptr + idx, src, num) != VECTOR_SUCCESS) { \
+            _##name##_vector_free_values(ptr, vec->size); \
+            free(ptr); \
+            goto error; \
+        } \
+        _##name##_vector_free_values(vec->data, vec->size); \
         /* free the old buffer and assign. */ \
         free(vec->data); \
         vec->data = ptr; \
@@ -535,7 +525,7 @@ vector_iterator_t(name) _##name##_vector_insert(vector_t(name)* vec, \
             vec->data + idx, \
             vec->size - idx); \
         /* copy the to-be-inserted range over. */ \
-        if (_##name##_vector_copy_values(vec->data + idx, src, num) != 0) { \
+        if (_##name##_vector_copy_values(vec->data + idx, src, num) != VECTOR_SUCCESS) { \
             /* move elements back to their original positions on copy-error. */ \
             _##name##_vector_move_values(vec->data + idx, \
                 vec->data + (idx + num), \
@@ -653,14 +643,18 @@ error: \
  * @{
  */
 
-#define _def_vector_compare_function_pod(type, name) \
-bool _##name##_vector_compare_values(const type* a, const type* b) { assert(a && b); return *a == *b; }
+#define _def_vector_value_compare_function_ptr(type, name, comp_fn) \
+bool(* const _##name##_vector_comp_fn)(const type*, const type*) = comp_fn;
+
+#define _def_vector_value_default_comp_fn(type, name) \
+bool _##name##_vector_default_comp_fn(const type* a, const type* b) { assert(a && b); return *a == *b; } \
+_def_vector_value_compare_function_ptr(type, name, &_##name##_vector_default_comp_fn)
 
 #define _def_vector_search_functions(type, name) \
 vector_iterator_t(name) \
 _##name##_vector_find(vector_t(name)* vec, const type val) { \
     vector_for_each(name, vec, elem) { \
-        if (vector_compare_values_fn(name)((const type*)elem, &val)) { \
+        if (_##name##_vector_comp_fn((const type*)elem, &val)) { \
             return elem; \
         } \
     } \
@@ -670,7 +664,7 @@ _##name##_vector_find(vector_t(name)* vec, const type val) { \
 bool \
 _##name##_vector_contains(vector_t(name)* vec, const type val) { \
     vector_for_each(name, vec, elem) { \
-        if (vector_compare_values_fn(name)((const type*)elem, &val)) { \
+        if (_##name##_vector_comp_fn((const type*)elem, &val)) { \
             return true; \
         } \
     } \
@@ -711,58 +705,82 @@ error: \
  */
 #define declare_vector(type, name) \
 _decl_vector_struct(type, name) \
-_decl_vector_special_functions(type, name) \
-_decl_vector_modifier_functions(type, name) \
-_decl_vector_search_functions(type, name)
-
-/**
- * @brief declares a vector with <type> as it's value-type.
- *        you can refer to vectors of this type with vector_t(<name>).
- *        name and type may be equivalent, the distinction is useful
- *        for value-types with special-characters or qualifiers as e.g. pointers.
- *
- *        if you declare a vector with this macro you also want to define
- *        four other functions to let the vector know how your type operates.
- *        see the documentation for:
- *        - vector_copy_value_fn(<name>)
- *        - vector_move_value_fn(<name>)
- *        - vector_free_value_fn(<name>)
- *        - vector_compare_values_fn(<name>)
- *
- *        preferably use this in your header-files.
- */
-#define declare_vector_non_pod(type, name) \
-_decl_vector_value_functions_non_pod(type, name) \
+_decl_vector_value_compare_function_ptr(type, name) \
+_decl_vector_value_function_ptrs_non_pod(type, name) \
 _decl_vector_internal_functions_non_pod(type, name) \
-_decl_vector_struct(type, name) \
 _decl_vector_special_functions(type, name) \
 _decl_vector_modifier_functions(type, name) \
 _decl_vector_search_functions(type, name)
 
-/**
- * @brief defines all vector-functionality for a vector with <type> as it's value-type.
- *        
- *        preferably use this in your source-files.
- */
-#define define_vector(type, name) \
-_def_vector_compare_function_pod(type, name) \
+/* utility-macros */
+#define _vector_expand(x) x
+#define _vector_select_macro(_1, _2, _3, _4, _5, _6, name, ...) name
+
+/* overloads for define_vector() */
+/* regular pod-types with default-comparison. */
+#define _def_vector_1(type, name) \
+_def_vector_value_default_comp_fn(type, name) \
 _def_vector_special_functions_pod(type, name) \
 _def_vector_modifier_functions_pod(type, name) \
 _def_vector_search_functions(type, name)
 
-/**
- * @brief defines all vector-functionality for a vector with <type> as it's value-type
- *        and treating every instance of <type> as a non-pod type.
- *        this means that copying, freeing and comparing is dependent on your
- *        definitions of these functions.
- *
- *        preferably use this in your source-files.
- */
-#define define_vector_non_pod(type, name) \
+/* pod-types with custom-comparison. */
+#define _def_vector_2(type, name, comp_fn) \
+_def_vector_value_compare_function_ptr(type, name, comp_fn) \
+_def_vector_special_functions_pod(type, name) \
+_def_vector_modifier_functions_pod(type, name) \
+_def_vector_search_functions(type, name)
+
+/* non-pod-types with default-comparison (e.g. pointers). */
+#define _def_vector_3(type, name, copy_fn, move_fn, free_fn) \
+_def_vector_value_default_comp_fn(type, name) \
+_def_vector_value_function_ptrs_non_pod(type, name, copy_fn, move_fn, free_fn) \
 _def_vector_internal_functions_non_pod(type, name) \
 _def_vector_special_functions_non_pod(type, name) \
 _def_vector_modifier_functions_non_pod(type, name) \
 _def_vector_search_functions(type, name)
+
+/* non-pod-types with custom-comparison. */
+#define _def_vector_4(type, name, copy_fn, move_fn, free_fn, comp_fn) \
+_def_vector_value_compare_function_ptr(type, name, comp_fn) \
+_def_vector_value_function_ptrs_non_pod(type, name, copy_fn, move_fn, free_fn) \
+_def_vector_internal_functions_non_pod(type, name) \
+_def_vector_special_functions_non_pod(type, name) \
+_def_vector_modifier_functions_non_pod(type, name) \
+_def_vector_search_functions(type, name)
+
+/**
+ * @brief defines all vector-functionality for a vector with <type> as it's value-type.
+ *        preferably use this in your source-files.
+ * @details supports 4 overloads:
+ *        1.) regular pod-types with default-comparison.
+ *          define_vector(type, name)
+ *        2.) pod-types with custom-comparison.
+ *          define_vector(type, name, comp_fn)
+ *        3.) non-pod-types with default-comparison (e.g. pointers).
+ *          define_vector(type, name, copy_fn, move_fn, free_fn)
+ *        4.) non-pod-types with custom-comparison.
+ *          define_vector(type, name, copy_fn, move_fn, free_fn, comp_fn)
+ *
+ *        the signatures for your passed predicates have to be:
+ *        1.) copying: 
+ *          vector_result_t copy(type* dest, const type* src);
+ *        where a return-value of VECTOR_SUCCESS indicates a successful copy and anything else an error.
+ *        2.) moving:
+ *          void move(type* dest, type* src);
+ *        3.) freeing:
+ *          void free(type* ptr);
+ *        4.) comparing:
+ *          bool comp(const type* a, const type* b);
+ *        where a return-value of true indicates equality.
+ */
+#define define_vector(...) \
+_vector_expand(_vector_select_macro(__VA_ARGS__, \
+    _def_vector_4, \
+    _def_vector_3, \
+    static_assert(false, "invalid number of arguments for define_vector()"), \
+    _def_vector_2, \
+    _def_vector_1)(__VA_ARGS__))
 
 /**
  * @}

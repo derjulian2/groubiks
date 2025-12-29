@@ -1,3 +1,3 @@
-# groubiks
+# groubiks - a Roubiks-Cube-Simulator
 
-würfler
+nothing here yet

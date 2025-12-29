@@ -1,9 +1,29 @@
 
 #include <groubiks/utility/common.h>
 
-define_vector(cstring_t);
-define_vector(const_cstring_t);
-define_vector(uint32_t);
+define_vector(uint32_t, u32);
+
+vector_result_t _copy_str(char** dest, const char** src) {
+    assert(dest && src);
+    return (*dest = strdup(*src)) == NULL ? VECTOR_ERROR : VECTOR_SUCCESS;
+}
+
+void _move_str(char** dest, char** src) {
+    assert(dest && src);
+    *dest = *src;
+}
+
+void _free_str(char** ptr) {
+    assert(ptr);
+    free(*ptr);
+}
+
+bool _comp_str(const char** a, const char** b) {
+    assert(a && b);
+    return strcmp(*a, *b) == 0;
+}
+
+define_vector(char*, str, &_copy_str, &_move_str, &_free_str, &_comp_str);
 
 int clampi(int v, int lo, int hi) {
     return (v < lo) ? lo : ((v > hi) ? hi : v);

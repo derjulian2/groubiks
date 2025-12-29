@@ -22,13 +22,10 @@
 #define GROUBIKS_SUCCESS  0
 #define GROUBIKS_ERROR   -1
 
-typedef char* cstring_t;
-typedef const char* const_cstring_t;
 typedef int groubiks_result_t;
 
-declare_vector(cstring_t);
-declare_vector(const_cstring_t);
-declare_vector(uint32_t);
+declare_vector(char*, str);
+declare_vector(uint32_t, u32);
 
 #define memzero(obj) memset(&obj, 0, sizeof(obj))
 

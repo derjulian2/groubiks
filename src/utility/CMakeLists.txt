@@ -1,7 +1,7 @@
 
 set(GROUBIKS_UTILITY_SOURCES
-    # "common.c"
-    # "log.c"
+    "common.c"
+    "log.c"
     "vector.c"
     "optional.c")
 

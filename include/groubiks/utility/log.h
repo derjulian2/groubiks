@@ -69,15 +69,34 @@
  */
 typedef struct {
     FILE* m_fno;
-    cstring_t m_prefix;
+    char* m_prefix;
     int m_use_timestamp;
 } log_t;
-declare_vector(log_t);
+
+vector_result_t copy_log(log_t* dest, const log_t* src) {
+    assert(dest && src);
+    dest->m_fno = src->m_fno;
+    dest->m_prefix = strdup(src->m_prefix);
+    dest->m_use_timestamp = src->m_use_timestamp;
+    return dest->m_prefix == NULL ? VECTOR_ERROR : VECTOR_SUCCESS;
+}
+
+void move_log(log_t* dest, log_t* src) {
+    assert(dest && src);
+    *dest = *src;
+}
+
+void free_log(log_t* ptr) {
+    assert(ptr);
+    free(ptr->m_prefix);
+}
+
+declare_vector(log_t, log);
 /**
  * @brief global logs-container. see below.
  */
-extern vector_t(log_t) g_logs;
-#define GROUBIKS_LOGS_CONTAINER g_logs
+extern vector_t(log) g_logs;
+#define GROUBIKS_LOGS g_logs
 /**
  * @details the logging-system works via a global container
  *          that manages all log-handles. this allows for global storage of all logs
@@ -113,7 +132,7 @@ void _log_make_timestamp(char* buf);
 void _log_make_msg(int logno, const char* msg);
 void _log_make_fmsg(int logno, const char* fmt, ...);
 
-#define log_get(logno) vector_at(log_t, &GROUBIKS_LOGS_CONTAINER, logno)
+#define log_get(logno) vector_at(log_t, &GROUBIKS_LOGS, logno)
 
 #ifdef GROUBIKS_NO_LOGS
     #define log_info(msg)
