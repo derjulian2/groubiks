@@ -1,11 +1,11 @@
 
 #include <groubiks/utility/common.h>
 
-define_vector(uint32_t, u32);
+define_dynarray(uint32_t, u32);
 
-vector_result_t _copy_str(char** dest, const char** src) {
+dynarray_result_t _copy_str(char** dest, const char** src) {
     assert(dest && src);
-    return (*dest = strdup(*src)) == NULL ? VECTOR_ERROR : VECTOR_SUCCESS;
+    return (*dest = strdup(*src)) == NULL ? DYNARRAY_ERROR : DYNARRAY_SUCCESS;
 }
 
 void _move_str(char** dest, char** src) {
@@ -23,7 +23,11 @@ bool _comp_str(const char** a, const char** b) {
     return strcmp(*a, *b) == 0;
 }
 
-define_vector(char*, str, &_copy_str, &_move_str, &_free_str, &_comp_str);
+define_dynarray(char*, str, 
+    (copy, &_copy_str), 
+    (free, &_free_str), 
+    (comp, &_comp_str)
+);
 
 int clampi(int v, int lo, int hi) {
     return (v < lo) ? lo : ((v > hi) ? hi : v);

@@ -2,7 +2,7 @@
 set(GROUBIKS_UTILITY_SOURCES
     "common.c"
     "log.c"
-    "vector.c"
+    "dynarray.c"
     "optional.c")
 
 if (BUILD_VULKAN_RENDERER)

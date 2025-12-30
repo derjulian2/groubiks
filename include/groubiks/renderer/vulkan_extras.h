@@ -16,12 +16,12 @@
 #include <groubiks/utility/log.h>
 #include <groubiks/compile_config.h>
 
-declare_vector(VkLayerProperties, VkLayerProps);
-declare_vector(VkExtensionProperties, VkExtProps);
+declare_dynarray(VkLayerProperties, VkLayerProps);
+declare_dynarray(VkExtensionProperties, VkExtProps);
 
 struct vk_extras {
-    vector_t(str) m_validationlayers;
-    vector_t(str) m_extensions;
+    dynarray_t(str) m_validationlayers;
+    dynarray_t(str) m_extensions;
 };
 
 groubiks_result_t vk_extras_get_glfw(struct vk_extras* pExt);
@@ -29,7 +29,7 @@ groubiks_result_t vk_extras_get_glfw(struct vk_extras* pExt);
 groubiks_result_t vk_extras_match_instance(const struct vk_extras* pExt);
 groubiks_result_t vk_extras_match_device(const struct vk_extras* pExt, VkPhysicalDevice device);
 
-groubiks_result_t vk_extras_check_layers(const vector_t(str)* pRequestedLayers, const vector_t(VkLayerProps)* pLayers);
-groubiks_result_t vk_extras_check_extensions(const vector_t(str)* pRequestedExtensions, const vector_t(VkExtProps)* pExtensions);
+groubiks_result_t vk_extras_check_layers(const dynarray_t(str)* pRequestedLayers, const dynarray_t(VkLayerProps)* pLayers);
+groubiks_result_t vk_extras_check_extensions(const dynarray_t(str)* pRequestedExtensions, const dynarray_t(VkExtProps)* pExtensions);
 
 #endif

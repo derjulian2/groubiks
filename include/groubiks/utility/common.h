@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <groubiks/utility/vector.h>
+#include <groubiks/utility/dynarray.h>
 
 // enum Groubiks_ErrorCode
 // {
@@ -24,8 +24,8 @@
 
 typedef int groubiks_result_t;
 
-declare_vector(char*, str);
-declare_vector(uint32_t, u32);
+declare_dynarray(char*, str);
+declare_dynarray(uint32_t, u32);
 
 #define memzero(obj) memset(&obj, 0, sizeof(obj))
 

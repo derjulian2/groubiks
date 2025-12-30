@@ -2,12 +2,12 @@
 #include <groubiks/renderer/vulkan_extras.h>
 
 /* non-comparable types. */
-define_vector(VkLayerProperties, VkLayerProps, NULL);
-define_vector(VkExtensionProperties, VkExtProps, NULL);
+define_dynarray(VkLayerProperties, VkLayerProps, (comp, NULL));
+define_dynarray(VkExtensionProperties, VkExtProps, (comp, NULL));
 
 groubiks_result_t vk_extras_get_glfw(struct vk_extras* pExt) {
     assert(pExt != NULL);
-    vector_result_t vectorErr = VECTOR_SUCCESS; 
+    dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS; 
     const char** ppGlfwExtensions; uint32_t glfwExtensionCount = 0;
     size_t oldSize = pExt->m_extensions.size;
 
@@ -19,9 +19,9 @@ groubiks_result_t vk_extras_get_glfw(struct vk_extras* pExt) {
         logf_info("%d. %s", i, ppGlfwExtensions[i]);
     }
 
-    vector_insert_range(str, &pExt->m_extensions, pExt->m_extensions.size, 
-        ppGlfwExtensions, glfwExtensionCount, &vectorErr);
-    if (vectorErr != VECTOR_SUCCESS) { goto error; }
+    dynarray_insert_range(str, &pExt->m_extensions, pExt->m_extensions.size, 
+        ppGlfwExtensions, glfwExtensionCount, &dynarrayErr);
+    if (dynarrayErr != DYNARRAY_SUCCESS) { goto error; }
 
     log_info("successfully retrieved glfw-extensions");
     return GROUBIKS_SUCCESS;
@@ -32,32 +32,32 @@ error:
 
 groubiks_result_t vk_extras_match_instance(const struct vk_extras* pExt) {
     assert(pExt != NULL);
-    groubiks_result_t err = GROUBIKS_SUCCESS; vector_result_t vectorErr = VECTOR_SUCCESS;
+    groubiks_result_t err = GROUBIKS_SUCCESS; dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS;
     VkResult vkErr = VK_SUCCESS;
-    vector_t(VkLayerProps) layerProps = null_vector(VkLayerProps); 
-    vector_t(VkExtProps) extensionProps = null_vector(VkExtProps);
+    dynarray_t(VkLayerProps) layerProps = null_dynarray(VkLayerProps); 
+    dynarray_t(VkExtProps) extensionProps = null_dynarray(VkExtProps);
     uint32_t layerCount = 0; uint32_t extensionCount = 0;
 
     logf_info("requested %d instance-validationlayers:", pExt->m_validationlayers.size);
-    vector_for_each(str, &pExt->m_validationlayers, layer) {
-        logf_info("%d. %s", vector_index(&pExt->m_validationlayers, layer), layer);
+    dynarray_for_each(str, &pExt->m_validationlayers, layer) {
+        logf_info("%d. %s", dynarray_index(&pExt->m_validationlayers, layer), layer);
     }
     logf_info("requested %d instance-extensions:", pExt->m_extensions.size);
-    vector_for_each(str, &pExt->m_extensions, extension) {
-        logf_info("%d. %s", vector_index(&pExt->m_extensions, extension), extension);
+    dynarray_for_each(str, &pExt->m_extensions, extension) {
+        logf_info("%d. %s", dynarray_index(&pExt->m_extensions, extension), extension);
     }
 
     vkErr = vkEnumerateInstanceLayerProperties(&layerCount, NULL);
     if (vkErr != VK_SUCCESS) { goto cleanup; }
-    vector_resize(VkLayerProps, &layerProps, layerCount, &vectorErr);
-    if (vectorErr != VECTOR_SUCCESS) { goto cleanup; }
+    dynarray_resize(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
+    if (dynarrayErr != DYNARRAY_SUCCESS) { goto cleanup; }
     vkErr = vkEnumerateInstanceLayerProperties(&layerCount, layerProps.data);
     if (vkErr != VK_SUCCESS) { goto cleanup; }
     
     vkErr = vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
     if (vkErr != VK_SUCCESS) { goto cleanup; }
-    vector_resize(VkExtProps, &extensionProps, extensionCount, &vectorErr);
-    if (vectorErr != VECTOR_SUCCESS) { goto cleanup; }
+    dynarray_resize(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
+    if (dynarrayErr != DYNARRAY_SUCCESS) { goto cleanup; }
     vkErr = vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensionProps.data);
     if (vkErr != VK_SUCCESS) { goto cleanup; }
     
@@ -66,9 +66,9 @@ groubiks_result_t vk_extras_match_instance(const struct vk_extras* pExt) {
     { err = GROUBIKS_ERROR; goto cleanup; }
 
 cleanup:
-    free_vector(VkLayerProps, &layerProps);
-    free_vector(VkExtProps, &extensionProps);
-    if (vectorErr != VECTOR_SUCCESS || vkErr != VK_SUCCESS || err != GROUBIKS_SUCCESS)
+    free_dynarray(VkLayerProps, &layerProps);
+    free_dynarray(VkExtProps, &extensionProps);
+    if (dynarrayErr != DYNARRAY_SUCCESS || vkErr != VK_SUCCESS || err != GROUBIKS_SUCCESS)
     { goto error; }
 
     log_info("successfully matched vulkan-extras against instance.");
@@ -82,32 +82,32 @@ error:
 
 groubiks_result_t vk_extras_match_device(const struct vk_extras* pExt, VkPhysicalDevice device) {
     assert(pExt != NULL && device != VK_NULL_HANDLE);
-    groubiks_result_t err = GROUBIKS_SUCCESS; vector_result_t vectorErr = VECTOR_SUCCESS;
+    groubiks_result_t err = GROUBIKS_SUCCESS; dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS;
     VkResult vkErr = VK_SUCCESS;
-    vector_t(VkLayerProps) layerProps = null_vector(VkLayerProps); 
-    vector_t(VkExtProps) extensionProps = null_vector(VkExtProps);
+    dynarray_t(VkLayerProps) layerProps = null_dynarray(VkLayerProps); 
+    dynarray_t(VkExtProps) extensionProps = null_dynarray(VkExtProps);
     uint32_t layerCount = 0; uint32_t extensionCount = 0;
 
     logf_info("requested %d device-validationlayers:", pExt->m_validationlayers.size);
-    vector_for_each(str, &pExt->m_validationlayers, layer) {
-        logf_info("%d. %s", vector_index(&pExt->m_validationlayers, layer), layer);
+    dynarray_for_each(str, &pExt->m_validationlayers, layer) {
+        logf_info("%d. %s", dynarray_index(&pExt->m_validationlayers, layer), layer);
     }
     logf_info("requested %d device-extensions:", pExt->m_extensions.size);
-    vector_for_each(str, &pExt->m_extensions, extension) {
-        logf_info("%d. %s", vector_index(&pExt->m_extensions, extension), extension);
+    dynarray_for_each(str, &pExt->m_extensions, extension) {
+        logf_info("%d. %s", dynarray_index(&pExt->m_extensions, extension), extension);
     }
 
     vkErr = vkEnumerateDeviceLayerProperties(device, &layerCount, NULL);
     if (vkErr != VK_SUCCESS) { goto cleanup; }
-    vector_resize(VkLayerProps, &layerProps, layerCount, &vectorErr);
-    if (vectorErr != VECTOR_SUCCESS) { goto cleanup; }
+    dynarray_resize(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
+    if (dynarrayErr != DYNARRAY_SUCCESS) { goto cleanup; }
     vkErr = vkEnumerateDeviceLayerProperties(device, &layerCount, layerProps.data);
     if (vkErr != VK_SUCCESS) { goto cleanup; }
     
     vkErr = vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, NULL);
     if (vkErr != VK_SUCCESS) { goto cleanup; }
-    vector_resize(VkExtProps, &extensionProps, extensionCount, &vectorErr);
-    if (vectorErr != VECTOR_SUCCESS) { goto cleanup; }
+    dynarray_resize(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
+    if (dynarrayErr != DYNARRAY_SUCCESS) { goto cleanup; }
     vkErr = vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, extensionProps.data);
     if (vkErr != VK_SUCCESS) { goto cleanup; }
     
@@ -116,9 +116,9 @@ groubiks_result_t vk_extras_match_device(const struct vk_extras* pExt, VkPhysica
     { err = GROUBIKS_ERROR; goto cleanup; }
 
 cleanup:
-    free_vector(VkLayerProps, &layerProps);
-    free_vector(VkExtProps, &extensionProps);
-    if (vectorErr != VECTOR_SUCCESS || vkErr != VK_SUCCESS || err != GROUBIKS_SUCCESS)
+    free_dynarray(VkLayerProps, &layerProps);
+    free_dynarray(VkExtProps, &extensionProps);
+    if (dynarrayErr != DYNARRAY_SUCCESS || vkErr != VK_SUCCESS || err != GROUBIKS_SUCCESS)
     { goto error; }
 
     log_info("successfully matched vulkan-extras against device.");
@@ -130,12 +130,12 @@ error:
     return GROUBIKS_ERROR;
 }
 
-groubiks_result_t vk_extras_check_layers(const vector_t(str)* pRequestedLayers, 
-    const vector_t(VkLayerProps)* pLayers) {
+groubiks_result_t vk_extras_check_layers(const dynarray_t(str)* pRequestedLayers, 
+    const dynarray_t(VkLayerProps)* pLayers) {
     assert(pRequestedLayers != NULL && pLayers != NULL);
-    vector_for_each(str, pRequestedLayers, pRequestedLayer) {
+    dynarray_for_each(str, pRequestedLayers, pRequestedLayer) {
         bool found = false;
-        vector_for_each(VkLayerProps, pLayers, pLayer) {
+        dynarray_for_each(VkLayerProps, pLayers, pLayer) {
             if (strcmp(*pRequestedLayer, pLayer->layerName) == 0) {
                 found = true;
                 break;
@@ -149,12 +149,12 @@ groubiks_result_t vk_extras_check_layers(const vector_t(str)* pRequestedLayers,
     return GROUBIKS_SUCCESS;
 }
 
-groubiks_result_t vk_extras_check_extensions(const vector_t(str)* pRequestedExtensions, 
-    const vector_t(VkExtProps)* pExtensions) {
+groubiks_result_t vk_extras_check_extensions(const dynarray_t(str)* pRequestedExtensions, 
+    const dynarray_t(VkExtProps)* pExtensions) {
     assert(pRequestedExtensions != NULL && pExtensions != NULL);
-    vector_for_each(str, pRequestedExtensions, pRequestedExtension) {
+    dynarray_for_each(str, pRequestedExtensions, pRequestedExtension) {
         bool found = false;
-        vector_for_each(VkExtProps, pExtensions, pExtension) {
+        dynarray_for_each(VkExtProps, pExtensions, pExtension) {
             if (strcmp(*pRequestedExtension, pExtension->extensionName) == 0) {
                 found = true;
                 break;

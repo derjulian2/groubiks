@@ -8,7 +8,7 @@
  * @brief logging-management for the groubiks-vulkan-renderer.
  */
 
-#include <groubiks/utility/vector.h>
+#include <groubiks/utility/dynarray.h>
 #include <groubiks/utility/common.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -73,17 +73,12 @@ typedef struct {
     int m_use_timestamp;
 } log_t;
 
-vector_result_t copy_log(log_t* dest, const log_t* src) {
+dynarray_result_t copy_log(log_t* dest, const log_t* src) {
     assert(dest && src);
     dest->m_fno = src->m_fno;
     dest->m_prefix = strdup(src->m_prefix);
     dest->m_use_timestamp = src->m_use_timestamp;
-    return dest->m_prefix == NULL ? VECTOR_ERROR : VECTOR_SUCCESS;
-}
-
-void move_log(log_t* dest, log_t* src) {
-    assert(dest && src);
-    *dest = *src;
+    return dest->m_prefix == NULL ? DYNARRAY_ERROR : DYNARRAY_SUCCESS;
 }
 
 void free_log(log_t* ptr) {
@@ -91,11 +86,11 @@ void free_log(log_t* ptr) {
     free(ptr->m_prefix);
 }
 
-declare_vector(log_t, log);
+declare_dynarray(log_t, log);
 /**
  * @brief global logs-container. see below.
  */
-extern vector_t(log) g_logs;
+extern dynarray_t(log) g_logs;
 #define GROUBIKS_LOGS g_logs
 /**
  * @details the logging-system works via a global container
@@ -104,9 +99,9 @@ extern vector_t(log) g_logs;
  *          other code. everything will get cleaned up with a single call to log_end().
  *
  *          to use the system, create a new log with log_new() and you will have a new log
- *          in the global vector. access it with log_at(num).
+ *          in the global dynarray. access it with log_at(num).
  *
- *          4 default-logs will always be the first 4 elements of this vector.
+ *          4 default-logs will always be the first 4 elements of this dynarray.
  *  
  *          use GROUBIKS_LOGS_ALWAYS_FLUSH to automatically flush with every log() call.
  */
@@ -132,7 +127,7 @@ void _log_make_timestamp(char* buf);
 void _log_make_msg(int logno, const char* msg);
 void _log_make_fmsg(int logno, const char* fmt, ...);
 
-#define log_get(logno) vector_at(log_t, &GROUBIKS_LOGS, logno)
+#define log_get(logno) dynarray_at(log_t, &GROUBIKS_LOGS, logno)
 
 #ifdef GROUBIKS_NO_LOGS
     #define log_info(msg)
