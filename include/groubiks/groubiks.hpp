@@ -3,7 +3,9 @@
 #define GROUBIKS_HPP
 
 extern "C" {
-    #include <groubiks/renderer/vulkan_context.h>
+    #include <groubiks/utility/dynarray.h>
+    #include <groubiks/utility/common.h>
+    // #include <groubiks/renderer/vulkan_context.h>
 }
 
 #include <groubiks/cube.hpp>

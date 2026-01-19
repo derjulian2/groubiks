@@ -4,7 +4,7 @@
 
 /**
  * @file vulkan_extras.h
- * @date 22/12/25
+ * @date 19/01/26
  * @author Julian Benzel
  * @brief data-structure to handle vulkan-validationlayers and
  *        extensions for instances and devices.
@@ -20,16 +20,35 @@ declare_dynarray(VkLayerProperties, VkLayerProps);
 declare_dynarray(VkExtensionProperties, VkExtProps);
 
 struct vk_extras {
-    dynarray_t(str) m_validationlayers;
-    dynarray_t(str) m_extensions;
+    struct dynarray(str) m_validationlayers;
+    struct dynarray(str) m_extensions;
 };
 
-groubiks_result_t vk_extras_get_glfw(struct vk_extras* pExt);
+#define vk_extras_null \
+(struct vk_extras) { \
+    .m_validationlayers = null_dynarray(str), \
+    .m_extensions       = null_dynarray(str)  \
+}
 
-groubiks_result_t vk_extras_match_instance(const struct vk_extras* pExt);
-groubiks_result_t vk_extras_match_device(const struct vk_extras* pExt, VkPhysicalDevice device);
+groubiks_result_t 
+vk_extras_get_glfw(struct vk_extras* pExt);
 
-groubiks_result_t vk_extras_check_layers(const dynarray_t(str)* pRequestedLayers, const dynarray_t(VkLayerProps)* pLayers);
-groubiks_result_t vk_extras_check_extensions(const dynarray_t(str)* pRequestedExtensions, const dynarray_t(VkExtProps)* pExtensions);
+groubiks_result_t 
+vk_extras_match_instance(const struct vk_extras* pExt);
+
+groubiks_result_t 
+vk_extras_match_device(const struct vk_extras* pExt, 
+    VkPhysicalDevice device
+); 
+
+groubiks_result_t 
+vk_extras_check_layers(const struct dynarray(str)* pRequestedLayers, 
+    const struct dynarray(VkLayerProps)* pLayers
+);
+
+groubiks_result_t 
+vk_extras_check_extensions(const struct dynarray(str)* pRequestedExtensions, 
+    const struct dynarray(VkExtProps)* pExtensions
+);
 
 #endif

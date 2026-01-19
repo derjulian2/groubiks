@@ -14,8 +14,8 @@ set(BUILD_VULKAN_RENDERER ON)
 set(BUILD_TESTS OFF)
 
 set(GROUBIKS_SOURCES
-    #"main.cpp"
-    #"groubiks.cpp"
+    "main.cpp"
+    "groubiks.cpp"
 )
 
 set(GROUBIKS_ROOT_DIR

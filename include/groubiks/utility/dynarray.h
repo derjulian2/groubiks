@@ -108,7 +108,8 @@ typedef size_t dynarray_index_t;
 /**
  * @returns a newly allocated dynarray with no duplicate elements.
  */
-#define dynarray_uniques(name, dyn) _##name##_dynarray_uniques(dyn)
+#define dynarray_uniques(name, dyn, err) _##name##_dynarray_uniques(dyn, err)
+#define dynarray_uniques_from_range(name, data, num, err) _##name##_dynarray_uniques_from_range(data, num, err)
 /**
  * @brief produces an index from an iterator and a dynarray.
  */
@@ -151,9 +152,7 @@ for (dynarray_const_iterator_t(name) iter = dynarray_begin(dyn); \
  *          behaviour for n=0 is undefined.
  */
 static inline int msb(uint64_t n) {
-#if __STDC_VERSION__ >= 202311L
-    return stdc_bit_width(n);
-#elif defined(__GNUC__)
+#if defined(__GNUC__)
     return 63 - __builtin_clzll(n);
 #elif defined(__MSC_VER)
     unsigned long long res;
@@ -230,7 +229,8 @@ void _##name##_dynarray_shrink_to_fit(dynarray_t(name)* dyn, dynarray_result_t* 
 #define _decl_dynarray_search_fns(type, name) \
 dynarray_iterator_t(name) _##name##_dynarray_find(dynarray_t(name)* dyn, const type val); \
 bool _##name##_dynarray_contains(dynarray_t(name)* dyn, const type val); \
-dynarray_t(name) _##name##_dynarray_uniques(dynarray_t(name)* dyn);
+dynarray_t(name) _##name##_dynarray_uniques(dynarray_t(name)* dyn, dynarray_result_t* err); \
+dynarray_t(name) _##name##_dynarray_uniques_from_range(const type* data, size_t num, dynarray_result_t* err);
 
 /**
  * @}
@@ -313,11 +313,14 @@ _##name##_make_dynarray(const type* data, size_t num, dynarray_result_t* err) { 
     size_t cap = _dynarray_grow_cap(num); \
     dynarray_t(name) tmp = { \
         .data = malloc(sizeof(type) * cap), \
-        .size = num, \
+        .size = 0ull, \
         .capacity = cap \
     }; \
     if (tmp.data == NULL) { goto error; } \
-    if (data) { memcpy(tmp.data, data, sizeof(type) * num); } \
+    if (data) { \
+        memcpy(tmp.data, data, sizeof(type) * num); \
+        tmp.size = num; \
+    } \
     if (err) { *err = DYNARRAY_SUCCESS; } \
     return tmp; \
 error: \
@@ -337,7 +340,7 @@ _##name##_make_dynarray(const type* data, size_t num, dynarray_result_t* err) { 
     size_t cap = _dynarray_grow_cap(num); \
     dynarray_t(name) tmp = { \
         .data = malloc(sizeof(type) * cap), \
-        .size = num, \
+        .size = 0ull, \
         .capacity = cap \
     }; \
     if (tmp.data == NULL) { goto error; } \
@@ -345,6 +348,7 @@ _##name##_make_dynarray(const type* data, size_t num, dynarray_result_t* err) { 
         if (_##name##_dynarray_copy_values(tmp.data, data, num) != 0) { \
             free(tmp.data); goto error; \
         } \
+        tmp.size = num; \
     } \
     if (err) { *err = DYNARRAY_SUCCESS; } \
     return tmp; \
@@ -657,6 +661,7 @@ _##name##_dynarray_comp_fn_t _##name##_dynarray_comp_fn = &_##name##_dynarray_de
 #define _def_dynarray_search_fns(type, name) \
 dynarray_iterator_t(name) \
 _##name##_dynarray_find(dynarray_t(name)* dyn, const type val) { \
+    assert(_##name##_dynarray_comp_fn != NULL); \
     dynarray_for_each(name, dyn, elem) { \
         if (_##name##_dynarray_comp_fn((const type*)elem, &val)) { \
             return elem; \
@@ -667,6 +672,7 @@ _##name##_dynarray_find(dynarray_t(name)* dyn, const type val) { \
 \
 bool \
 _##name##_dynarray_contains(dynarray_t(name)* dyn, const type val) { \
+    assert(_##name##_dynarray_comp_fn != NULL); \
     dynarray_for_each(name, dyn, elem) { \
         if (_##name##_dynarray_comp_fn((const type*)elem, &val)) { \
             return true; \
@@ -676,12 +682,18 @@ _##name##_dynarray_contains(dynarray_t(name)* dyn, const type val) { \
 } \
 \
 dynarray_t(name) \
-_##name##_dynarray_uniques(dynarray_t(name)* dyn) { \
-    dynarray_result_t err = DYNARRAY_SUCCESS; dynarray_t(name) res = null_dynarray(name); \
-    dynarray_for_each(name, dyn, elem) { \
-        if (!dynarray_contains(name, &res, *elem)) { \
-            dynarray_push_back(name, &res, *elem, &err); \
-            if (err != DYNARRAY_SUCCESS) { goto error; } \
+_##name##_dynarray_uniques(dynarray_t(name)* dyn, dynarray_result_t* err) { \
+    return dynarray_uniques_from_range(name, (const type*)dyn->data, dyn->size, err); \
+} \
+\
+dynarray_t(name) \
+_##name##_dynarray_uniques_from_range(const type* data, size_t num, dynarray_result_t* err) { \
+    dynarray_t(name) res = make_dynarray(name, NULL, num, err); \
+    if (*err != DYNARRAY_SUCCESS) { goto error; } \
+    for (size_t i = 0; i < num; ++i) { \
+        if (!dynarray_contains(name, &res, data[i])) { \
+            /* push-back cannot fail, space is reserved. */ \
+            dynarray_push_back(name, &res, data[i], NULL); \
         } \
     } \
     return res; \

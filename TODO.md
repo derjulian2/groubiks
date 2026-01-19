@@ -1,8 +1,6 @@
 
 # Renderer
 
-## finish up vector.h utility
-
 ## refactor C code to be easily readable
 
 ## use dear-Imgui for GUI

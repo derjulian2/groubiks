@@ -1,173 +1,239 @@
 
 #include <groubiks/renderer/vulkan_swapchain.h>
 
+define_dynarray(VkSurfaceFormatKHR, VkSurfaceFormat,
+    (comp, NULL)
+);
 
-VulkanSwapChain CreateSwapChain(VulkanActiveDevice device, VkSurfaceKHR surface, GLFWwindow* win) {
-    result_t err = 0;
-    uint32_t imageCount;
-    VulkanSwapChain swapchain;
-    VkResult vkerr = VK_SUCCESS;
-    VulkanSwapChainDetails details;
-    VkSwapchainCreateInfoKHR createInfo;
-    details = _getSwapChainCapabilities(device, surface);
-    swapchain = malloc(sizeof(VulkanSwapChain_t));
-    if (details == NULL || swapchain == NULL)
-    { goto error; }
-    /* pick some stuff for the swapchain */
-    if (details->m_formats.size == 0 || details->m_modes.size == 0)
-    { log_error("no swapchain formats/modes available."); goto error; }
-    err = _pickSurfaceFormat(swapchain, details);
-    if (err != 0)
-    { goto error; }
-    err = _pickPresentMode(swapchain, details);
-    if (err != 0)
-    { goto error; }
-    err = _pickSwapExtent(swapchain, details, win);
-    if (err != 0)
-    { goto error; }
-    /* create the actual thing */
-    imageCount = details->m_capabilities.minImageCount + 1;
-    if (details->m_capabilities.maxImageCount != 0 &&
-        (details->m_capabilities.minImageCount + 1) > details->m_capabilities.maxImageCount)
-    { imageCount = details->m_capabilities.maxImageCount; }
-    memzero(createInfo);
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = swapchain->m_swapchain_format.format;
-    createInfo.imageColorSpace = swapchain->m_swapchain_format.colorSpace;
-    createInfo.imageExtent = swapchain->m_swapchain_extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    createInfo.preTransform = details->m_capabilities.currentTransform;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = swapchain->m_swapchain_mode;
-    createInfo.clipped = VK_TRUE;
+define_dynarray(VkImage, VkImage);
+define_dynarray(VkImageView, VkImageView);
+define_dynarray(VkPresentModeKHR, VkPresentMode);
 
-    uint32_t queueFamilyIndices[] = { 
-        device->m_family_indices.m_graphics_family.value,
-        device->m_family_indices.m_present_family.value
-    };
-    if (queueFamilyIndices[0] != queueFamilyIndices[1]) {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = &queueFamilyIndices[0];
-    }
-    else {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    }
+
+groubiks_result_t
+vk_swapchain_create(struct vk_swapchain* pSwapChain,
+    struct vk_device_context* pDeviceContext,
+    VkSurfaceKHR surface,
+    GLFWwindow* pWin)
+{
+    groubiks_result_t err = GROUBIKS_SUCCESS;
+    VkResult vkErr        = VK_SUCCESS;
     
-    vkerr = vkCreateSwapchainKHR(
-        device->m_logical_device, 
+
+    u32 qfis[2] = { 
+        pDeviceContext->m_qfis.m_graphics_family.value, 
+        pDeviceContext->m_qfis.m_present_family.value
+    };
+
+    *pSwapChain = vk_swapchain_null;
+    struct vk_swapchain_details details = vk_swapchain_details_null;
+
+    err = vk_swapchain_details_create(&details, 
+        pDeviceContext->m_physical_device, 
+        surface
+    );
+    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
+
+    err = vk_swapchain_pick_details(pSwapChain, &details);
+
+    VkSwapchainCreateInfoKHR createInfo;
+    vk_fill_struct_swapchain_createinfo(&createInfo, 
+        surface, 
+        &pSwapChain->m_format, 
+        pSwapChain->m_mode, 
+        &pSwapChain->m_extent, 
+        &details.m_capabilities,
+        &qfis[0],
+        (sizeof(qfis) / sizeof(u32))
+    );
+
+    vkErr = vkCreateSwapchainKHR(pDeviceContext->m_logical_device, 
         &createInfo, 
         NULL, 
-        &swapchain->m_swapchain);
-    if (vkerr != VK_SUCCESS)
+        &pSwapChain->m_swapchain
+    );
+    if (vkErr != VK_SUCCESS) { goto error; }
+
+    err = vk_swapchain_get_image_handles(pSwapChain, pDeviceContext, createInfo.minImageCount);
+
+    err = vk_swapchain_setup_imageviews(pSwapChain, pDeviceContext->m_logical_device);
+
+cleanup:
+    free_dynarray(VkSurfaceFormat, &details.m_formats);
+    free_dynarray(VkPresentMode, &details.m_modes);
+
+    if (err   != GROUBIKS_SUCCESS ||
+        vkErr != VK_SUCCESS) 
     { goto error; }
 
-    /* retrieve image handles */
-    vkerr = vkGetSwapchainImagesKHR(
-        device->m_logical_device, 
-        swapchain->m_swapchain, 
-        &imageCount, 
-        NULL);
-    if (vkerr != VK_SUCCESS)
-    { goto error; }
-    swapchain->m_swapchain_images = make_vector(VkImage, NULL, imageCount, &err);
-    if (err != 0)
-    { goto error; }
-    vkerr = vkGetSwapchainImagesKHR(
-        device->m_logical_device, 
-        swapchain->m_swapchain, 
-        &imageCount, 
-        swapchain->m_swapchain_images.data);
-    if (vkerr != VK_SUCCESS)
-    { goto error; }
-    
-    /* setup imageviews */
-    err = _setupImageViews(swapchain, device);
-    if (err != 0)
-    { goto error; }
-
-    log_info("successfully setup swapchain and retrieved image-handles.");
-    free_vector(&details->m_formats);
-    free_vector(&details->m_modes);
-    free(details);
-    return swapchain;
+    log_info("created swapchain.");
+    return GROUBIKS_SUCCESS;
 error:
-    log_error("failed to setup swapchain.");
-    if (details != NULL)
-    {
-        free_vector(&details->m_formats);
-        free_vector(&details->m_modes);
-        free(details);
+    log_error("failed to create swapchain.");
+    return err;
+}
+
+
+void
+vk_swapchain_free(struct vk_swapchain* pSwapChain, VkDevice device)
+{
+    if (pSwapChain->m_swapchain != VK_NULL_HANDLE) {
+        vkDestroySwapchainKHR(device, pSwapChain->m_swapchain, NULL);
     }
-    free_vector(&swapchain->m_swapchain_images);
-    return NULL;
+    dynarray_for_each(VkImageView, &pSwapChain->m_imageviews, imageView) {
+        vkDestroyImageView(device, *imageView, NULL);
+    }
+    free_dynarray(VkImageView, &pSwapChain->m_imageviews);
+    free_dynarray(VkImage, &pSwapChain->m_images);
 }
 
-VulkanSwapChainDetails _getSwapChainCapabilities(VulkanActiveDevice device, VkSurfaceKHR surface) {
-    VkResult vkerr = VK_SUCCESS;
-    result_t err = 0;
-    uint32_t formatCount, modeCount;
-    VulkanSwapChainDetails res = malloc(sizeof(VulkanSwapChainDetails_t));
-    if (res == NULL)
-    { return NULL; }
-    memzero(*res);
-    /* retrieve capabilities */
-    vkerr = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-        device->m_physical_device,
-        surface,
-        &res->m_capabilities);
-    if (vkerr != VK_SUCCESS)
+
+groubiks_result_t
+vk_swapchain_get_image_handles(struct vk_swapchain* pSwapChain,
+    struct vk_device_context* pDeviceContext,
+    u32 imageCount)
+{
+    dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS;
+    VkResult vkErr                = VK_SUCCESS;
+
+    vkErr = vkGetSwapchainImagesKHR(pDeviceContext->m_logical_device, 
+        pSwapChain->m_swapchain, 
+        &imageCount, 
+        NULL
+    );
+    if (vkErr != VK_SUCCESS)
     { goto error; }
-    /* retrieve formats */
-    vkerr = vkGetPhysicalDeviceSurfaceFormatsKHR(
-        device->m_physical_device,
-        surface,
-        &formatCount,
-        NULL);
-    if (vkerr != VK_SUCCESS)
+    pSwapChain->m_images = make_dynarray(VkImage, 
+        NULL, 
+        imageCount, 
+        &dynarrayErr
+    );
+    if (dynarrayErr != DYNARRAY_SUCCESS)
     { goto error; }
-    res->m_formats = make_vector(VkSurfaceFormatKHR, NULL, formatCount, &err);
-    if (err != 0)
+
+    vkErr = vkGetSwapchainImagesKHR(pDeviceContext->m_logical_device, 
+        pSwapChain->m_swapchain, 
+        &imageCount, 
+        pSwapChain->m_images.data
+    );
+    if (vkErr != VK_SUCCESS)
     { goto error; }
-    vkerr = vkGetPhysicalDeviceSurfaceFormatsKHR(
-        device->m_physical_device,
-        surface,
-        &formatCount,
-        res->m_formats.data);
-    if (vkerr != VK_SUCCESS)
-    { goto error; }
-    /* retrieve modes */
-    vkerr = vkGetPhysicalDeviceSurfacePresentModesKHR(
-        device->m_physical_device,
-        surface,
-        &modeCount,
-        NULL);
-    if (vkerr != VK_SUCCESS)
-    { goto error; }
-    res->m_modes = make_vector(VkPresentModeKHR, NULL, modeCount, &err);
-    if (err != 0)
-    { goto error; }
-    vkerr = vkGetPhysicalDeviceSurfacePresentModesKHR(
-        device->m_physical_device,
-        surface,
-        &modeCount,
-        res->m_modes.data);
-    if (vkerr != VK_SUCCESS)
-    { goto error; }
-    log_info("retrieved swapchain-capabilities.");
-    return res;
+
+    log_info("retrieved image-handles.");
+    return GROUBIKS_SUCCESS;
 error:
-    log_error("failed to retrieve swapchain-capabilities.");
-    free_vector(&res->m_formats);
-    free_vector(&res->m_modes);
-    free(res);
-    return NULL;
+    log_error("failed to retrieve image-handles.");
+    return GROUBIKS_VULKAN_ERROR;
 }
 
-result_t _pickSurfaceFormat(VulkanSwapChain swapchain, VulkanSwapChainDetails details) {
+
+groubiks_result_t
+vk_swapchain_details_get_surfaceformats(struct vk_swapchain_details* pSwapChainDetails,
+    VkPhysicalDevice device,
+    VkSurfaceKHR surface)
+{
+    VkResult vkErr = VK_SUCCESS;
+    dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS;
+    uint32_t surfaceFormatCount = 0;
+
+    vkErr = vkGetPhysicalDeviceSurfaceFormatsKHR(device,
+        surface,
+        &surfaceFormatCount,
+        NULL
+    );
+    if (vkerr != VK_SUCCESS) { goto error; }
+    dynarray_reserve(str, 
+        &pSwapChainDetails->m_formats, 
+        surfaceFormatCount, 
+        &dynarrayErr
+    );
+    if (dynarrayErr != DYNARRAY_SUCCESS) { goto error; }
+    vkErr = vkGetPhysicalDeviceSurfaceFormatsKHR(device, 
+        surface, 
+        &surfaceFormatCount, 
+        &pSwapChainDetails->m_formats.data
+    );
+    if (vkerr != VK_SUCCESS) { goto error; }
+    log_info("retrieved surface-formats.");
+    return GROUBIKS_SUCCESS;
+error:
+    log_error("failed to retrieve surface-formats.");
+    return GROUBIKS_ERROR;
+}
+
+
+groubiks_result_t
+vk_swapchain_details_get_presentmodes(struct vk_swapchain_details* pSwapChainDetails,
+    VkPhysicalDevice device,
+    VkSurfaceKHR surface)
+{
+    VkResult vkErr = VK_SUCCESS;
+    dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS;
+    uint32_t presentModeCount = 0;
+
+    vkErr = vkGetPhysicalDeviceSurfacePresentModesKHR(device,
+        surface,
+        &presentModeCount,
+        NULL
+    );
+    if (vkerr != VK_SUCCESS) { goto error; }
+    dynarray_reserve(str, 
+        &pSwapChainDetails->m_modes, 
+        presentModeCount, 
+        &dynarrayErr
+    );
+    if (dynarrayErr != DYNARRAY_SUCCESS) { goto error; }
+    vkErr = vkGetPhysicalDeviceSurfacePresentModesKHR(device, 
+        surface, 
+        &presentModeCount, 
+        &pSwapChainDetails->m_modes.data
+    );
+    if (vkerr != VK_SUCCESS) { goto error; }
+    log_info("retrieved surface-presentmodes.");
+    return GROUBIKS_SUCCESS;
+error:
+    log_error("failed to retrieve surface-presentmodes.");
+    return GROUBIKS_ERROR;
+}
+
+
+groubiks_result_t
+vk_swapchain_details_create(struct vk_swapchain_details* pSwapChainDetails,
+    VkPhysicalDevice device,
+    VkSurfaceKHR surface)
+{
+    groubiks_result_t err = GROUBIKS_SUCCESS;
+    VkResult vkErr        = VK_SUCCESS;
+
+    vkErr = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, 
+        surface,
+        &pSwapChainDetails->m_capabilities
+    );
+    if (vkErr != VK_SUCCESS) {
+        log_error("failed to retrieve surface-capabilities.");
+        return GROUBIKS_ERROR;
+    }
+
+    err = vk_swapchain_details_get_presentmodes(pSwapChainDetails, device, surface);
+    err = vk_swapchain_details_get_surfaceformats(pSwapChainDetails, device, surface);
+
+    log_info("retrieved surface-capabilities.");
+    return GROUBIKS_SUCCESS;
+}
+
+groubiks_result_t 
+vk_swapchain_pick_details(struct vk_swapchain* pSwapChain,
+    struct vk_swapchain_details* pSwapChainDetails)
+{
+    return vk_swapchain_pick_extent(pSwapChain, pSwapChainDetails) ||
+           vk_swapchain_pick_surface_format(pSwapChain, pSwapChainDetails) ||
+           vk_swapchain_pick_presentmode(pSwapChain, pSwapChainDetails);
+}
+
+groubiks_result_t 
+vk_swapchain_pick_surface_format(struct vk_swapchain* pSwapChain,
+    struct vk_swapchain_details* pSwapChainDetails)
+{
     vector_for_each(VkSurfaceFormatKHR, &details->m_formats, format) {
         if (format->format     == VK_FORMAT_B8G8R8_SRGB &&
             format->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) { 
@@ -184,14 +250,10 @@ result_t _pickSurfaceFormat(VulkanSwapChain swapchain, VulkanSwapChainDetails de
     return 0;
 }
 
-result_t _pickPresentMode(VulkanSwapChain swapchain, VulkanSwapChainDetails details) {
-    /* set present-mode to guaranteed options right away. other present modes may be checked here if desired */
-    swapchain->m_swapchain_mode = VK_PRESENT_MODE_FIFO_KHR;
-    log_info("found viable present-mode for swapchain.");
-    return 0;
-}
-
-result_t _pickSwapExtent(VulkanSwapChain swapchain, VulkanSwapChainDetails details, GLFWwindow* win) {
+groubiks_result_t
+vk_swapchain_pick_extent(struct vk_swapchain* pSwapChain,
+    struct vk_swapchain_details* pSwapChainDetails)
+{
     if (details->m_capabilities.currentExtent.width != UINT32_MAX) { 
         swapchain->m_swapchain_extent = details->m_capabilities.currentExtent;
         logf_info("set swapextent to currentextent of %dx%d.",
@@ -216,54 +278,47 @@ result_t _pickSwapExtent(VulkanSwapChain swapchain, VulkanSwapChainDetails detai
         logf_info("determined valid swapextent of %dx%d.", 
             extent.width, extent.height);
     }
-    return 0;
 }
 
-result_t _setupImageViews(VulkanSwapChain swapchain, VulkanActiveDevice device) {
-    result_t err = 0;
-    VkResult vkerr = VK_SUCCESS;
 
-    swapchain->m_swapchain_imageviews = make_vector(VkImageView, NULL, swapchain->m_swapchain_images.size, &err);
-    if (err != 0)
-    { return -1; }
+groubiks_result_t 
+vk_swapchain_pick_presentmode(struct vk_swapchain* pSwapChain,
+    struct vk_swapchain_details* pSwapChainDetails)
+{
+    /* set present-mode to guaranteed options right away. other present modes may be checked here if desired */
+    swapchain->m_swapchain_mode = VK_PRESENT_MODE_FIFO_KHR;
+    log_info("found viable present-mode for swapchain.");
+}
 
-    vector_for_each(VkImageView, &swapchain->m_swapchain_imageviews, imageView) {
-        int idx = vector_make_index(VkImageView, &swapchain->m_swapchain_imageviews, imageView);
+
+groubiks_result_t
+vk_swapchain_setup_imageviews(struct vk_swapchain* pSwapChain,
+    VkDevice ldevice)
+{
+    VkResult vkErr = VK_SUCCESS;
+    dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS;
+
+    pSwapChain->m_imageviews = make_dynarray(VkImageView, 
+        NULL, 
+        pSwapChain->m_images.size, 
+        &dynarrayErr
+    );
+    if (dynarrayErr != DYNARRAY_SUCCESS) { goto error; }
+
+    dynarray_for_each(VkImageView, &pSwapChain.m_imageviews, imageView) {
+        uint32_t idx = dynarray_index(&pSwapChain->m_imageviews, imageview);
         VkImageViewCreateInfo createInfo;
-        memzero(createInfo);
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = swapchain->m_swapchain_images.data[idx];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = swapchain->m_swapchain_format.format;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-        vkerr = vkCreateImageView(
-            device->m_logical_device, 
-            &createInfo, 
-            NULL,
-            imageView);
-        if (vkerr != 0)
-        { goto error; }
+        vk_fill_struct_imageview_createinfo(&createInfo, 
+            pSwapChain->m_images[idx], 
+            pSwapChain->m_format
+        );
+        vkErr = vkCreateImageView(ldevice, &createInfo, NULL, imageView);
+        if (vkErr != VK_SUCCESS) { goto error; }
     }
-    log_info("successfully setup imageviews");
-    return 0;
+    log_info("setup imageviews.");
+    return GROUBIKS_SUCCESS;
 error:
+    free_dynarray(VkImageView, &pSwapChain->m_imageviews);
     log_error("failed to setup imageviews.");
-    free_vector(&swapchain->m_swapchain_imageviews);
-    return -1;
-}
-
-void DestroySwapChain(VulkanSwapChain swapchain, VkDevice device) {
-    free_vector(&swapchain->m_swapchain_images);
-    vector_for_each(VkImageView, &swapchain->m_swapchain_imageviews, imageView)
-    { vkDestroyImageView(device, *imageView, NULL); }
-    free_vector(&swapchain->m_swapchain_imageviews);
-    vkDestroySwapchainKHR(device, swapchain->m_swapchain, NULL);
+    return GROUBIKS_VULKAN_ERROR;
 }

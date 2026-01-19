@@ -1,13 +1,22 @@
 
-#ifndef GROUBIKS_PRESENTATION_H
-#define GROUBIKS_PRESENTATION_H
+#ifndef GROUBIKS_COMMANDS_H
+#define GROUBIKS_COMMANDS_H
 
 #include <GLFW/glfw3.h>
-#include <groubiks/utility/common.h>
-#include <groubiks/utility/vector.h>
-#include <groubiks/utility/log.h>
-#include <groubiks/renderer/GraphicsPipeline.h>
-#include <groubiks/renderer/Commands.h>
+#include <groubiks/renderer/ActiveDevice.h>
+
+typedef struct {
+    VkCommandPool m_commandpool;
+    VkCommandBuffer m_commandbuffer;
+    VkSemaphore m_imageavailable_sem;
+    VkSemaphore m_renderfinished_sem;
+    VkFence m_inflight_fen;
+} VulkanCommands_t;
+typedef VulkanCommands_t* VulkanCommands;
+
+VulkanCommands CreateVulkanCommands(VulkanActiveDevice device);
+void DestroyVulkanCommands(VulkanCommands commands, VulkanActiveDevice device);
+
 
 declare_vector(VkFramebuffer);
 
@@ -31,5 +40,4 @@ result_t _setupFrameBuffers(RenderContext rndr_ctx);
 void DestroyRenderContext(RenderContext_t* rndr_ctx, VkInstance instance);
 
 result_t RecordCommandBuffer(RenderContext rndr_ctx, VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
 #endif

@@ -96,7 +96,7 @@ int dynarray_test(FILE* fno) {
     /* [ 3 4 1 2 69 3 4 5 420 ] */
     print_int_dyn(stdout, dyn_1);
 
-    dynarray_t(i32) uniq = dynarray_uniques(i32, &dyn_1);
+    dynarray_t(i32) uniq = dynarray_uniques(i32, &dyn_1, &err);
     /* [ 3 4 1 2 69 5 420 ]*/
     print_int_dyn(stdout, uniq);
 
