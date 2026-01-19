@@ -65,4 +65,53 @@ readFile(const char* path,
     size_t* size
 );
 
+/**
+ * @brief classic macro-overload counting-magic.
+ */
+#define _EXPAND_MACRO(x) x
+#define _SELECT_MACRO(_1, _2, name, ...) name
+/**
+ * @brief custom exception-handling utility.
+ *        (just some syntactic sugar to make error-handling less ugly)
+ * @details some explanation for my unnecessary but fancy macros:
+ *
+ * check(cond) will jump to the except-block if cond evaluates to false.
+ * check(cond, statement) will execute the statement and then jump 
+ *                        to the except-block if cond evaluates to false.
+ * except(retval, block) will define an except-block that will execute when an exception
+ *                       occured and then immediately return retval.
+ * except(block)  will define an except-block, that will execute when an exception occured and
+ *                jump to the defined cleanup-block.
+ * cleanup(block) will define a cleanup-block, that will execute after the except-block
+ *                and also if no exceptions occur.
+ */
+#define __check_0(cond) \
+if (!(cond)) { \
+    goto __except; \
+} 
+
+#define __check_1(cond, block) \
+if (!(cond)) { \
+    block; \
+    goto __except; \
+} 
+
+#define check(...) _EXPAND_MACRO(_SELECT_MACRO(__VA_ARGS__, __check_1, __check_0)(__VA_ARGS__))
+
+#define __except_0(block) \
+__except: \
+    block; \
+    goto __cleanup;
+
+#define __except_1(retval, block) \
+__except: \
+    block; \
+    return retval;
+
+#define except(...) _EXPAND_MACRO(_SELECT_MACRO(__VA_ARGS__, __except_1, __except_0)(__VA_ARGS__))
+
+#define cleanup(block) \
+__cleanup: \
+    block;
+
 #endif

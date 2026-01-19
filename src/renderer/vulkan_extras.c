@@ -5,9 +5,12 @@
 define_dynarray(VkLayerProperties, VkLayerProps, 
     (comp, NULL)
 );
+
+
 define_dynarray(VkExtensionProperties, VkExtProps, 
     (comp, NULL)
 );
+
 
 groubiks_result_t 
 vk_extras_get_glfw(struct vk_extras* pExt) 
@@ -20,10 +23,7 @@ vk_extras_get_glfw(struct vk_extras* pExt)
     size_t oldSize = pExt->m_extensions.size;
 
     ppGlfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    if (ppGlfwExtensions == NULL) { 
-        err = GROUBIKS_GLFW_ERROR;
-        goto error; 
-    }
+    check(ppGlfwExtensions, err = GROUBIKS_GLFW_ERROR);
 
     logf_info("found %d glfw-extensions:", glfwExtensionCount);
     for (u32 i = 0; i < glfwExtensionCount; ++i) {
@@ -37,17 +37,13 @@ vk_extras_get_glfw(struct vk_extras* pExt)
         glfwExtensionCount, 
         &dynarrayErr
     );
-    if (dynarrayErr != DYNARRAY_SUCCESS) { 
-        err = GROUBIKS_BAD_ALLOC;
-        goto error; 
-    }
+    check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
 
     log_info("retrieved glfw-extensions");
     return GROUBIKS_SUCCESS;
-error:
-    log_error("failed to retrieve glfw-extensions.");
-    return err;
+    except(err, log_error("failed to retrieve glfw-extensions."));
 }
+
 
 groubiks_result_t 
 vk_extras_match_instance(const struct vk_extras* pExt) 
@@ -71,58 +67,37 @@ vk_extras_match_instance(const struct vk_extras* pExt)
     }
 
     vkErr = vkEnumerateInstanceLayerProperties(&layerCount, NULL);
-    if (vkErr != VK_SUCCESS) { 
-        err = GROUBIKS_VULKAN_ERROR;
-        goto cleanup; 
-    }
-    dynarray_resize(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
-    if (dynarrayErr != DYNARRAY_SUCCESS) { 
-        err = GROUBIKS_BAD_ALLOC; 
-        goto cleanup; 
-    }
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
+    dynarray_reserve(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
+    check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumerateInstanceLayerProperties(&layerCount, layerProps.data);
-    if (vkErr != VK_SUCCESS) { 
-        err = GROUBIKS_VULKAN_ERROR;
-        goto cleanup; 
-    }
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
     
     vkErr = vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
-    if (vkErr != VK_SUCCESS) { 
-        err = GROUBIKS_VULKAN_ERROR;
-        goto cleanup; 
-    }
-    dynarray_resize(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
-    if (dynarrayErr != DYNARRAY_SUCCESS) { 
-        err = GROUBIKS_BAD_ALLOC; 
-        goto cleanup; 
-    }
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
+    dynarray_reserve(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
+    check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensionProps.data);
-    if (vkErr != VK_SUCCESS) { 
-        err = GROUBIKS_VULKAN_ERROR;
-        goto cleanup; 
-    }
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
     
     err = vk_extras_check_layers(&pExt->m_validationlayers, &layerProps);
-    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
+    check(err == GROUBIKS_SUCCESS);
     err = vk_extras_check_extensions(&pExt->m_extensions, &extensionProps);
-    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
+    check(err == GROUBIKS_SUCCESS);
 
-cleanup:
-    free_dynarray(VkLayerProps, &layerProps);
-    free_dynarray(VkExtProps, &extensionProps);
-    if (dynarrayErr != DYNARRAY_SUCCESS || 
-        vkErr       != VK_SUCCESS || 
-        err         != GROUBIKS_SUCCESS)
-    { goto error; }
-
+    cleanup (
+        free_dynarray(VkLayerProps, &layerProps);
+        free_dynarray(VkExtProps, &extensionProps);
+    );
     log_info("matched vulkan-extras against instance.");
     log_info("all requested validationlayers and extensions were found.");
-    return GROUBIKS_SUCCESS;
-error:
-    log_error("failed to match vulkan-extras against instance.");
-    log_error("some requested validationlayers or extensions are unsupported.");
     return err;
+    except ( 
+        log_error("failed to match vulkan-extras against instance.");
+        log_error("some requested validationlayers or extensions are unsupported.");
+    );
 }
+
 
 groubiks_result_t 
 vk_extras_match_device(const struct vk_extras* pExt, 
@@ -147,58 +122,37 @@ vk_extras_match_device(const struct vk_extras* pExt,
     }
 
     vkErr = vkEnumerateDeviceLayerProperties(device, &layerCount, NULL);
-    if (vkErr != VK_SUCCESS) { 
-        err = GROUBIKS_VULKAN_ERROR;
-        goto cleanup; 
-    }
-    dynarray_resize(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
-    if (dynarrayErr != DYNARRAY_SUCCESS) { 
-        err = GROUBIKS_BAD_ALLOC; 
-        goto cleanup; 
-    }
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
+    dynarray_reserve(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
+    check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumerateDeviceLayerProperties(device, &layerCount, layerProps.data);
-    if (vkErr != VK_SUCCESS) { 
-        err = GROUBIKS_VULKAN_ERROR;
-        goto cleanup; 
-    }
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
     
     vkErr = vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, NULL);
-    if (vkErr != VK_SUCCESS) { 
-        err = GROUBIKS_VULKAN_ERROR;
-        goto cleanup; 
-    }
-    dynarray_resize(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
-    if (dynarrayErr != DYNARRAY_SUCCESS) { 
-        err = GROUBIKS_BAD_ALLOC; 
-        goto cleanup; 
-    }
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
+    dynarray_reserve(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
+    check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, extensionProps.data);
-    if (vkErr != VK_SUCCESS) { 
-        err = GROUBIKS_VULKAN_ERROR;
-        goto cleanup; 
-    }
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
     
     err = vk_extras_check_layers(&pExt->m_validationlayers, &layerProps);
-    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
+    check(err == GROUBIKS_SUCCESS);
     err = vk_extras_check_extensions(&pExt->m_extensions, &extensionProps);
-    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
+    check(err == GROUBIKS_SUCCESS);
 
-cleanup:
-    free_dynarray(VkLayerProps, &layerProps);
-    free_dynarray(VkExtProps, &extensionProps);
-    if (dynarrayErr != DYNARRAY_SUCCESS || 
-        vkErr       != VK_SUCCESS || 
-        err         != GROUBIKS_SUCCESS)
-    { goto error; }
-
+    cleanup (
+        free_dynarray(VkLayerProps, &layerProps);
+        free_dynarray(VkExtProps, &extensionProps);
+    );
     log_info("matched vulkan-extras against device.");
     log_info("all requested validationlayers and extensions were found.");
-    return GROUBIKS_SUCCESS;
-error:
-    log_error("failed to match vulkan-extras against device:");
-    log_error("some requested validationlayers or extensions are unsupported.");
     return err;
+    except (
+        log_error("failed to match vulkan-extras against device:");
+        log_error("some requested validationlayers or extensions are unsupported.");
+    );
 }
+
 
 groubiks_result_t 
 vk_extras_check_layers(const struct dynarray(str)* pRequestedLayers, 
@@ -219,6 +173,7 @@ vk_extras_check_layers(const struct dynarray(str)* pRequestedLayers,
     }
     return GROUBIKS_SUCCESS;
 }
+
 
 groubiks_result_t 
 vk_extras_check_extensions(const struct dynarray(str)* pRequestedExtensions, 
