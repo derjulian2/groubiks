@@ -34,10 +34,10 @@ struct vk_queues {
 };
 
 struct vk_device_context {
-    VkPhysicalDevice m_physical_device;
-    VkDevice m_logical_device;
+    VkPhysicalDevice               m_physical_device;
+    VkDevice                       m_logical_device;
     struct vk_queue_family_indices m_qfis;
-    struct vk_queues m_queues;
+    struct vk_queues               m_queues;
 };
 
 #define vk_queue_family_indices_null \

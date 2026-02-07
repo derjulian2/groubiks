@@ -1,14 +1,140 @@
 
 #include <groubiks/renderer/vulkan_context.h>
 
-define_vector(VkPhysicalDevice);
+define_dynarray(VkPhysicalDevice, VkPhysicalDevice, 
+    (comp, NULL)
+);
 
-groubiks_result_t make_vk_context(struct vk_context* pVulkanContext, struct vk_extras* pExtras);
-void free_vk_context(struct vk_context* pVulkanContext);
 
-groubiks_result_t vk_context_setup_instance(struct vk_context* pVulkanContext);
-groubiks_result_t vk_context_setup_debug_messenger(struct vk_context* pVulkanContext);
-groubiks_result_t vk_context_setup_devices(struct vk_context* pVulkanContext);
+groubiks_result_t 
+vk_context_create(struct vk_context* pVulkanContext, 
+    struct vk_extras* pExtras)
+{
+    groubiks_result_t err = GROUBIKS_SUCCESS;
+
+    *pVulkanContext = vk_context_null;
+
+    err = vk_context_setup_instance(pVulkanContext, pExtras);
+    check(err == GROUBIKS_SUCCESS);
+
+    err = vk_context_setup_devices(pVulkanContext);
+    check(err == GROUBIKS_SUCCESS);
+
+    err = vk_context_setup_debug_messenger(pVulkanContext);
+    check(err == GROUBIKS_SUCCESS);
+
+    log_info(VK_CONTEXT_CREATE_SUCCESS_STR);
+    return err;
+    except(err,
+        free_vk_context(pVulkanContext);
+        log_error(VK_CONTEXT_CREATE_FAIL_STR);
+    )
+}
+
+
+void 
+free_vk_context(struct vk_context* pVulkanContext)
+{
+    if (pVulkanContext->m_debug_messenger != VK_NULL_HANDLE) {
+        PFN_vkDestroyDebugUtilsMessengerEXT destroyMessengerFunc = 
+        (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(pVulkanContext->m_instance, "vkDestroyDebugUtilsMessengerEXT");
+        if (destroyMessengerFunc == NULL || pVulkanContext->m_instance == VK_NULL_HANDLE) {
+            log_error(VK_CONTEXT_DEBUG_MESSENGER_CLEANUP_FAIL_STR);
+        }
+        else {
+            destroyMessengerFunc(pVulkanContext->m_instance, pVulkanContext->m_debug_messenger, NULL);
+        }
+    }
+    if (pVulkanContext->m_instance != VK_NULL_HANDLE) {
+        vkDestroyInstance(pVulkanContext->m_instance, NULL);
+    }
+}
+
+
+groubiks_result_t 
+vk_context_setup_instance(struct vk_context* pVulkanContext,
+    struct vk_extras* pExtras)
+{
+    groubiks_result_t err = GROUBIKS_SUCCESS;
+    VkResult vkErr = VK_SUCCESS;
+
+    VkApplicationInfo appInfo;
+    VkInstanceCreateInfo createInfo;
+
+    err = vk_extras_match_instance(pExtras);
+    check(err == GROUBIKS_SUCCESS);
+
+    vk_fill_struct_instance_appinfo(&appInfo);
+    vk_fill_struct_instance_createinfo(&createInfo, 
+        &appInfo, 
+        (const char*const*)pExtras->m_validationlayers.data, pExtras->m_validationlayers.size, 
+        (const char*const*)pExtras->m_extensions.data, pExtras->m_extensions.size
+    );
+    
+    vkErr = vkCreateInstance(&createInfo, NULL, &pVulkanContext->m_instance);
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
+
+    log_info(VK_CONTEXT_INSTANCE_SETUP_SUCCESS_STR);
+    return err;
+    except(err,
+        log_error(VK_CONTEXT_INSTANCE_SETUP_FAIL_STR);
+    )
+}
+
+
+groubiks_result_t 
+vk_context_setup_debug_messenger(struct vk_context* pVulkanContext)
+{
+    groubiks_result_t err = GROUBIKS_SUCCESS;
+    VkResult vkErr        = VK_SUCCESS; 
+
+    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    
+    vk_fill_struct_debugmessenger_createinfo(&createInfo, &vk_groubiks_debug_callback);
+
+    PFN_vkCreateDebugUtilsMessengerEXT createMessengerFunc = 
+    (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(pVulkanContext->m_instance, "vkCreateDebugUtilsMessengerEXT");
+    check(createMessengerFunc != NULL, err = GROUBIKS_VULKAN_ERROR);
+     
+    vkErr = createMessengerFunc(pVulkanContext->m_instance, &createInfo, NULL, &pVulkanContext->m_debug_messenger);
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
+
+    log_info(VK_CONTEXT_DEBUG_MESSENGER_SETUP_SUCCESS_STR);
+    return err;
+    except(err,
+        log_error(VK_CONTEXT_DEBUG_MESSENGER_SETUP_FAIL_STR)
+    )
+}
+
+
+groubiks_result_t 
+vk_context_setup_devices(struct vk_context* pVulkanContext)
+{
+    groubiks_result_t err         = GROUBIKS_SUCCESS; 
+    dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS;
+    VkResult vkErr                = VK_SUCCESS;
+    u32 deviceCount = 0;
+
+    vkErr = vkEnumeratePhysicalDevices(pVulkanContext->m_instance, &deviceCount, NULL);
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
+    dynarray_reserve(VkPhysicalDevice, &pVulkanContext->m_physical_devices, deviceCount, &dynarrayErr);
+    check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
+    vkErr = vkEnumeratePhysicalDevices(pVulkanContext->m_instance, &deviceCount, pVulkanContext->m_physical_devices.data);
+    check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
+
+    VkPhysicalDeviceProperties props;
+    memzero(props);
+    dynarray_for_each(VkPhysicalDevice, &pVulkanContext->m_physical_devices, device) {
+        vkGetPhysicalDeviceProperties(*device, &props);
+        logf_info("found device: %s", props.deviceName);
+    }
+
+    log_info(VK_CONTEXT_DEVICE_SETUP_SUCCESS_STR);
+    return err;
+    except(err,
+        log_error(VK_CONTEXT_DEVICE_SETUP_FAIL_STR);
+    )
+}
 
 VulkanDevices CreateVulkanDevices(VkInstance instance, const char** extensionNames, uint32_t numExtensionsNames) {
     VulkanDevices dvcs = malloc(sizeof(VulkanDevices_t));
@@ -30,25 +156,6 @@ error:
     return NULL;
 }
 
-result_t _setupAvailableDevices(VulkanDevices_t* dvcs, VkInstance instance) {
-    assert(dvcs != NULL && instance != NULL);
-    result_t err = 0;
-    VkResult vkerr = VK_SUCCESS;
-    uint32_t deviceCount = 0;
-
-    vkerr = vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
-    if (vkerr != VK_SUCCESS)
-    { return -1; }
-    if (deviceCount == 0)
-    { return -1; }
-    dvcs->m_available_devices = make_vector(VkPhysicalDevice, NULL, deviceCount, &err);
-    if (err != 0)
-    { return -1; }
-    vkerr = vkEnumeratePhysicalDevices(instance, &deviceCount, dvcs->m_available_devices.data);
-    if (vkerr != VK_SUCCESS)
-    { return -1; }
-    return 0;
-}
 
 result_t _isDeviceSuitable(VkPhysicalDevice dvc) {
     assert(dvc != NULL);
@@ -58,145 +165,6 @@ result_t _isDeviceSuitable(VkPhysicalDevice dvc) {
     vkGetPhysicalDeviceProperties(dvc, &props);
     vkGetPhysicalDeviceFeatures(dvc, &features);
     return props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-}
-
-result_t _deviceHasExtensions(VkPhysicalDevice dvc, VulkanExtensions ext) {
-    result_t res = 1;
-    uint32_t extensionCount = 0;
-    VkResult vkerr = VK_SUCCESS;
-    VkExtensionProperties* props;
-
-    vkerr = vkEnumerateDeviceExtensionProperties(dvc, NULL, &extensionCount, NULL);
-    if (vkerr != VK_SUCCESS)
-    { return -1; }
-    props = malloc(sizeof(VkExtensionProperties) * extensionCount);
-    if (props == NULL) 
-    { return -1; }
-    vkerr = vkEnumerateDeviceExtensionProperties(dvc, NULL, &extensionCount, props);
-    for (uint32_t i = 0; i < ext->m_extensions.size; ++i) {
-        bool hasExtension = false;
-        for (uint32_t j = 0; j < extensionCount; ++j) {
-            if (strcmp(ext->m_extensions.data[i], props[j].extensionName))
-            { hasExtension = true; break; }
-        }
-        if (!hasExtension)
-        { res = 0; goto cleanup;  }
-    }
-cleanup:
-    free(props);
-    return res;
-}
-
-void DestroyVulkanDevices(VulkanDevices dvcs) {
-    if (dvcs == NULL)
-    { return; }
-    free_vector(&dvcs->m_available_devices);
-    free_extensions(dvcs->m_device_extensions);
-}
-
-VulkanContext CreateVulkanContext() {
-    VulkanContext ctx = malloc(sizeof(VulkanContext_t));
-    if (ctx == NULL)
-    { return NULL; }
-    memzero(*ctx);
-    if (_setupExtensions(ctx)    ||
-        _setupVulkanInstance(ctx) ||
-        _setupDebugMessenger(ctx) ||
-        _setupDevices(ctx))
-    { goto error; }
-    return ctx;
-error:
-    DestroyVulkanContext(ctx);
-    return NULL;
-}
-
-result_t _setupExtensions(VulkanContext_t* ctx) {
-    result_t err = 0;
-    /* setup extensions and validationlayers via initmanager */
-    ctx->m_extensions = make_extensions(VK_VALIDATIONLAYERS,
-        VK_NUM_VALIDATIONLAYERS,
-        VK_EXTENSIONS,
-        VK_NUM_EXTENSIONS);
-    if (ctx->m_extensions == NULL) 
-    { log_error("failed to initialize VulkanExtensions."); return -1; }
-    err = _get_glfw_extensions(ctx->m_extensions);
-    if (err != 0)
-    { log_error("failed to setup Vulkan GLFW-extensions"); return -1; }
-    err = _verify_validationlayers(ctx->m_extensions);
-    if (err != 0) 
-    { log_error("failed to verify Vulkan-validation-layers."); return -1; }
-    return 0;
-}
-
-result_t _setupVulkanInstance(VulkanContext_t* ctx) {
-    result_t err = 0;
-    VkApplicationInfo appInfo;
-    VkInstanceCreateInfo instanceCreateInfo;
-    VkResult vkerr = VK_SUCCESS;
-    /* instance-creation */
-    memzero(appInfo);
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = DEFAULT_APPLICATION_NAME;
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
-    
-    memzero(instanceCreateInfo);
-    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instanceCreateInfo.pApplicationInfo = &appInfo;
-    instanceCreateInfo.ppEnabledLayerNames = (const char*const*)ctx->m_extensions->m_validationlayers.data;
-    instanceCreateInfo.enabledLayerCount = ctx->m_extensions->m_validationlayers.size;
-    instanceCreateInfo.ppEnabledExtensionNames = (const char*const*)ctx->m_extensions->m_extensions.data;
-    instanceCreateInfo.enabledExtensionCount = ctx->m_extensions->m_extensions.size;
-    
-    vkerr = vkCreateInstance(&instanceCreateInfo, NULL, &ctx->m_instance);
-    if (vkerr != VK_SUCCESS) 
-    { log_error("failed to create Vulkan-instance."); return -1; }
-    return 0;
-}
-
-result_t _setupDebugMessenger(VulkanContext_t* ctx) {
-    /* initialize debugmessenger */
-    result_t err = 0;
-    VkResult vkerr = VK_SUCCESS;
-    VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo;
-
-    memzero(messengerCreateInfo);
-    messengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    messengerCreateInfo.messageSeverity = 
-    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | 
-    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
-    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    messengerCreateInfo.messageType = 
-    VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
-    VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | 
-    VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    messengerCreateInfo.pfnUserCallback = &Vulkan_GroubiksDebugCallback;
-
-    PFN_vkCreateDebugUtilsMessengerEXT func = 
-    (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->m_instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func == NULL)
-    { log_error("Vulkan-DebugUtils-extension not loaded."); return -1; }
-
-    vkerr = func(ctx->m_instance, &messengerCreateInfo, NULL, &ctx->m_debug_messenger);
-    if (vkerr != VK_SUCCESS)
-    { log_error("failed to initialize Vulkan-DebugMessenger."); return -1; }
-    return 0;
-}
-
-result_t _setupDevices(VulkanContext_t* ctx) {
-    result_t err = 0;
-    /* query devices and setup a picked device */
-    ctx->m_devices = CreateVulkanDevices(ctx->m_instance,
-            VK_DEVICE_EXTENSIONS,
-            VK_NUM_DEVICE_EXTENSIONS);
-    if (ctx == NULL)
-    { log_error("failed to initialize VulkanDeviceManager."); return -1; }
-    err = _setupAvailableDevices(ctx->m_devices, ctx->m_instance);
-    if (err != 0)
-    { log_error("failed to query for physical devices."); return -1; }
-    return 0;
 }
 
 RenderContext VulkanContext_AddRenderContext(VulkanContext ctx, GLFWwindow* win) {
@@ -277,40 +245,4 @@ result_t VulkanContext_Draw(VulkanContext ctx, RenderContext rndr_ctx) {
     { return -1; }
 
     return 0;
-}
-
-void DestroyVulkanContext(VulkanContext_t* ctx) {
-    DestroyVulkanDevices(ctx->m_devices);
-    _destroyDebugMessenger(ctx);
-    free_extensions(ctx->m_extensions);
-    vector_for_each(RenderContext, &ctx->m_render_ctxs, r_ctx)
-    { DestroyRenderContext(*r_ctx, ctx->m_instance); }
-    free_vector(&ctx->m_render_ctxs);
-    vkDestroyInstance(ctx->m_instance, NULL);
-}
-
-void _destroyDebugMessenger(VulkanContext_t* ctx) {
-    PFN_vkDestroyDebugUtilsMessengerEXT func = 
-    (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(ctx->m_instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != NULL)
-    { func(ctx->m_instance, ctx->m_debug_messenger, NULL); }
-}
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan_GroubiksDebugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) {
-    switch (messageSeverity)
-    {
-    case (VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT):
-        log_info(pCallbackData->pMessage);
-    case (VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT):
-        log_warning(pCallbackData->pMessage);
-    case (VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT):
-        log_error(pCallbackData->pMessage);
-    default:
-        log(INFO_LOG, pCallbackData->pMessage);
-    }
-    return VK_FALSE;
 }

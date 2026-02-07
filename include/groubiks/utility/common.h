@@ -17,6 +17,8 @@
 enum groubiks_error_code {
     GROUBIKS_SUCCESS,
     GROUBIKS_BAD_ALLOC,
+    GROUBIKS_SHADER_ERROR,
+    GROUBIKS_IO_ERROR,
     GROUBIKS_VULKAN_ERROR,
     GROUBIKS_GLFW_ERROR
 };
@@ -60,7 +62,7 @@ clampui(unsigned int v,
 );
 
 int 
-readFile(const char* path, 
+read_file(const char* path, 
     char** ptr, 
     size_t* size
 );
@@ -96,6 +98,7 @@ if (!(cond)) { \
     goto __except; \
 } 
 
+#define raise(block) block; goto __except;
 #define check(...) _EXPAND_MACRO(_SELECT_MACRO(__VA_ARGS__, __check_1, __check_0)(__VA_ARGS__))
 
 #define __except_0(block) \

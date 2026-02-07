@@ -1,5 +1,7 @@
 
-#include <groubiks/renderer/RenderContext.h>
+#include <groubiks/renderer/vulkan_render_context.h>
+
+define_dynarray(VkFrameBuffer, (comp, NULL))
 
 define_vector(VkImage);
 define_vector(VkImageView);

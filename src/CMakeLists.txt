@@ -31,6 +31,7 @@ cmake_path(ABSOLUTE_PATH GROUBIKS_ROOT_DIR NORMALIZE)
 set(GROUBIKS_LIBRARY_DEPENDENCIES
     glfw
     vulkan
+    libshaderc
     dl
     pthread
     X11

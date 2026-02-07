@@ -37,7 +37,7 @@ unsigned int clampui(unsigned int v, unsigned int lo, unsigned int hi) {
     return (v < lo) ? lo : ((v > hi) ? hi : v);
 }
 
-int readFile(const char* path, char** ptr, size_t* size) {
+int read_file(const char* path, char** ptr, size_t* size) {
     assert(path != NULL && ptr != NULL);
     FILE* fstream = fopen(path, "rb");
     if (fstream == NULL)

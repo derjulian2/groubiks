@@ -56,11 +56,9 @@ typedef size_t dynarray_index_t;
  */
 #define make_dynarray(name, data, num, err) _##name##_make_dynarray(data, num, err)
 /**
- * @brief assigns a dynarray to passed data. no size-adjustment, allocating or copying is performed. the data
- *        is not owned by the dynarray. this is intended to provide a dynarray_t(<type>)-wrapper
- *        around your data to use the dynarray-methods on it.
+ * @brief assigns a dynarray to passed data. no size-adjustment, allocating or copying is performed.
  */
-#define assign_dynarray(name, data, num) (dynarray_t(name)){ .data = data, .size = num, .capacity = num }
+#define assign_dynarray(name, ptr, num) (dynarray_t(name)){ .data = ptr, .size = num, .capacity = num }
 /**
  * @brief accessors. begin() at &data[0], end() at &data[size]
  */

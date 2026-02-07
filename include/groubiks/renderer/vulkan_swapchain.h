@@ -38,29 +38,32 @@ struct vk_swapchain {
 };
 
 inline VkSurfaceCapabilitiesKHR 
-VkSurfaceCapabilitiesKHR_null() {
+_VkSurfaceCapabilitiesKHR_null() {
     VkSurfaceCapabilitiesKHR tmp;
     memzero(tmp);
     return tmp;
 }
+#define VkSurfaceCapabilitiesKHR_null _VkSurfaceCapabilitiesKHR_null()
 
 inline VkExtent2D 
-VkExtent2D_null() {
+_VkExtent2D_null() {
     VkExtent2D tmp;
     memzero(tmp);
     return tmp;
 }
+#define VkExtent2D_null _VkExtent2D_null()
 
 inline VkSurfaceFormatKHR
-VkSurfaceFormatKHR_null() {
+_VkSurfaceFormatKHR_null() {
     VkSurfaceFormatKHR tmp;
     memzero(tmp);
     return tmp;
 }
+#define VkSurfaceFormatKHR_null _VkSurfaceFormatKHR_null()
 
 #define vk_swapchain_details_null \
 (struct vk_swapchain_details) { \
-    .m_capabilities = VkSurfaceCapabilitiesKHR_null(), \
+    .m_capabilities = VkSurfaceCapabilitiesKHR_null, \
     .m_formats      = null_dynarray(VkSurfaceFormat), \
     .m_modes        = null_dynarray(VkPresentMode) \
 }
@@ -68,8 +71,8 @@ VkSurfaceFormatKHR_null() {
 #define vk_swapchain_null \
 (struct vk_swapchain) { \
     .m_swapchain  = VK_NULL_HANDLE, \
-    .m_extent     = VkExtent2D_null(), \
-    .m_format     = VkSurfaceFormatKHR_null(), \
+    .m_extent     = VkExtent2D_null, \
+    .m_format     = VkSurfaceFormatKHR_null, \
     .m_mode       = 0, \
     .m_images     = null_dynarray(VkImage), \
     .m_imageviews = null_dynarray(VkImageView) \

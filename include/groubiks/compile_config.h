@@ -22,15 +22,31 @@
 #define VK_NUM_EXTENSIONS 1
 #define VK_NUM_DEVICE_EXTENSIONS 1
 
-#define GROUBIKS_DEFAULT_VERTEX_SHADER_PATH "/home/julian/Projects/groubiks/src/shaders/vertex.spv"
-#define GROUBIKS_DEFAULT_FRAGMENT_SHADER_PATH "/home/julian/Projects/groubiks/src/shaders/fragment.spv"
+#define GROUBIKS_VERTEX_SHADER_SOURCE_PATH   "/home/julian/Projects/groubiks/src/shaders/default.vert"
+#define GROUBIKS_FRAGMENT_SHADER_SOURCE_PATH "/home/julian/Projects/groubiks/src/shaders/default.frag"
 
-static const char* logs_init_fail_str    = "[ERROR] failed to initialize logging-system\n";
-static const char* glfw_init_fail_str    = "[ERROR] failed to initialize GLFW\n";
-static const char* glfw_win_fail_str     = "[ERROR] failed to initialize GLFWwindow\n";
-static const char* vk_context_fail_str   = "[ERROR] failed to initialize Vulkan-Context\n";
-static const char* vk_vlayers_fail_str   = "[ERROR] Vulkan validation-layers unavailable\n"; 
-static const char* vk_instance_fail_str  = "[ERROR] Vulkan-instance could not be created\n";
-static const char* vk_getdevice_fail_str = "[ERROR] Vulkan failed to retrieve available devices\n";
+/**
+ * --- success-log-strings ---
+ */
+#define VK_CONTEXT_CREATE_SUCCESS_STR "created vulkan-context"
+#define VK_CONTEXT_DEVICE_SETUP_SUCCESS_STR "retrieved physical devices"
+#define VK_CONTEXT_INSTANCE_SETUP_SUCCESS_STR "setup vulkan-instance"
+#define VK_CONTEXT_DEBUG_MESSENGER_SETUP_SUCCESS_STR "setup vulkan-debug-messenger"
+
+#define VK_PIPELINE_CREATE_SUCCESS_STR "created vulkan-graphics-pipeline"
+#define VK_PIPELINE_RENDERPASS_SETUP_SUCCESS_STR "setup renderpass"
+#define VK_SHADERMOD_SETUP_SUCCESS_STR "setup shadermodule"
+/**
+ * --- error-log-strings ---
+ */
+#define VK_CONTEXT_CREATE_FAIL_STR "failed to create vulkan-context"
+#define VK_CONTEXT_DEVICE_SETUP_FAIL_STR "failed to retrieve available physical devices"
+#define VK_CONTEXT_INSTANCE_SETUP_FAIL_STR "failed to setup vulkan-instance"
+#define VK_CONTEXT_DEBUG_MESSENGER_SETUP_FAIL_STR "failed to setup vulkan-debug-messenger"
+#define VK_CONTEXT_DEBUG_MESSENGER_CLEANUP_FAIL_STR "failed to cleanup vulkan-debug-messenger. something wen't wrong badly"
+
+#define VK_PIPELINE_CREATE_FAIL_STR "failed to create vulkan-graphics-pipeline"
+#define VK_PIPELINE_RENDERPASS_SETUP_FAIL_STR "failed to setup renderpass"
+#define VK_SHADERMOD_SETUP_FAIL_STR "failed to setup shadermodule"
 
 #endif
