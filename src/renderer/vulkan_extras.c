@@ -27,7 +27,7 @@ vk_extras_get_glfw(struct vk_extras* pExt)
 
     logf_info("found %d glfw-extensions:", glfwExtensionCount);
     for (u32 i = 0; i < glfwExtensionCount; ++i) {
-        logf_info("%d. %s", i, ppGlfwExtensions[i]);
+        logf_info("%d. %s", i + 1, ppGlfwExtensions[i]);
     }
 
     dynarray_insert_range(str, 
@@ -59,23 +59,23 @@ vk_extras_match_instance(const struct vk_extras* pExt)
 
     logf_info("requested %d instance-validationlayers:", pExt->m_validationlayers.size);
     dynarray_for_each(str, &pExt->m_validationlayers, layer) {
-        logf_info("%d. %s", dynarray_index(&pExt->m_validationlayers, layer), layer);
+        logf_info("%d. %s", dynarray_index(&pExt->m_validationlayers, layer) + 1, *layer);
     }
     logf_info("requested %d instance-extensions:", pExt->m_extensions.size);
     dynarray_for_each(str, &pExt->m_extensions, extension) {
-        logf_info("%d. %s", dynarray_index(&pExt->m_extensions, extension), extension);
+        logf_info("%d. %s", dynarray_index(&pExt->m_extensions, extension) + 1, *extension);
     }
 
     vkErr = vkEnumerateInstanceLayerProperties(&layerCount, NULL);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
-    dynarray_reserve(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
+    dynarray_resize(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
     check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumerateInstanceLayerProperties(&layerCount, layerProps.data);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
     
     vkErr = vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, NULL);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
-    dynarray_reserve(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
+    dynarray_resize(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
     check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumerateInstanceExtensionProperties(NULL, &extensionCount, extensionProps.data);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
@@ -85,12 +85,12 @@ vk_extras_match_instance(const struct vk_extras* pExt)
     err = vk_extras_check_extensions(&pExt->m_extensions, &extensionProps);
     check(err == GROUBIKS_SUCCESS);
 
+    log_info("matched vulkan-extras against instance.");
+    log_info("all requested validationlayers and extensions were found.");
     cleanup (
         free_dynarray(VkLayerProps, &layerProps);
         free_dynarray(VkExtProps, &extensionProps);
     );
-    log_info("matched vulkan-extras against instance.");
-    log_info("all requested validationlayers and extensions were found.");
     return err;
     except ( 
         log_error("failed to match vulkan-extras against instance.");
@@ -114,23 +114,23 @@ vk_extras_match_device(const struct vk_extras* pExt,
 
     logf_info("requested %d device-validationlayers:", pExt->m_validationlayers.size);
     dynarray_for_each(str, &pExt->m_validationlayers, layer) {
-        logf_info("%d. %s", dynarray_index(&pExt->m_validationlayers, layer), layer);
+        logf_info("%d. %s", dynarray_index(&pExt->m_validationlayers, layer) + 1, *layer);
     }
     logf_info("requested %d device-extensions:", pExt->m_extensions.size);
     dynarray_for_each(str, &pExt->m_extensions, extension) {
-        logf_info("%d. %s", dynarray_index(&pExt->m_extensions, extension), extension);
+        logf_info("%d. %s", dynarray_index(&pExt->m_extensions, extension) + 1, *extension);
     }
 
     vkErr = vkEnumerateDeviceLayerProperties(device, &layerCount, NULL);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
-    dynarray_reserve(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
+    dynarray_resize(VkLayerProps, &layerProps, layerCount, &dynarrayErr);
     check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumerateDeviceLayerProperties(device, &layerCount, layerProps.data);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
     
     vkErr = vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, NULL);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
-    dynarray_reserve(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
+    dynarray_resize(VkExtProps, &extensionProps, extensionCount, &dynarrayErr);
     check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, extensionProps.data);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
@@ -140,14 +140,14 @@ vk_extras_match_device(const struct vk_extras* pExt,
     err = vk_extras_check_extensions(&pExt->m_extensions, &extensionProps);
     check(err == GROUBIKS_SUCCESS);
 
-    cleanup (
+    log_info("matched vulkan-extras against device.");
+    log_info("all requested validationlayers and extensions were found.");
+    cleanup(
         free_dynarray(VkLayerProps, &layerProps);
         free_dynarray(VkExtProps, &extensionProps);
     );
-    log_info("matched vulkan-extras against device.");
-    log_info("all requested validationlayers and extensions were found.");
     return err;
-    except (
+    except(
         log_error("failed to match vulkan-extras against device:");
         log_error("some requested validationlayers or extensions are unsupported.");
     );

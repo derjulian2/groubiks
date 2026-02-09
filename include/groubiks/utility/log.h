@@ -73,7 +73,7 @@ typedef struct {
     int m_use_timestamp;
 } log_t;
 
-dynarray_result_t copy_log(log_t* dest, const log_t* src) {
+static inline dynarray_result_t copy_log(log_t* dest, const log_t* src) {
     assert(dest && src);
     dest->m_fno = src->m_fno;
     dest->m_prefix = strdup(src->m_prefix);
@@ -81,7 +81,7 @@ dynarray_result_t copy_log(log_t* dest, const log_t* src) {
     return dest->m_prefix == NULL ? DYNARRAY_ERROR : DYNARRAY_SUCCESS;
 }
 
-void free_log(log_t* ptr) {
+static inline void free_log(log_t* ptr) {
     assert(ptr);
     free(ptr->m_prefix);
 }

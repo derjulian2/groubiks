@@ -8,8 +8,9 @@
 #include <groubiks/renderer/vulkan_swapchain.h>
 #include <groubiks/renderer/vulkan_device_context.h>
 #include <groubiks/renderer/vulkan_graphics_pipeline.h>
+#include <groubiks/renderer/vulkan_context.h>
 
-declare_dynarray(VkFramebuffer, VkFrameBuffer)
+declare_dynarray(VkFramebuffer, VkFramebuffer)
 
 struct vk_command_context {
     VkCommandPool   m_command_pool;
@@ -20,12 +21,11 @@ struct vk_command_context {
 };
 
 struct vk_render_context {
-    struct vk_device_context       m_device_context;
     struct vk_command_context      m_command_context;
     struct vk_graphics_pipeline    m_graphics_pipeline;
     struct vk_swapchain            m_swapchain;
     VkSurfaceKHR                   m_surface;
-    struct dynarray(VkFrameBuffer) m_framebuffers;
+    struct dynarray(VkFramebuffer) m_framebuffers;
 };
 
 #define vk_command_context_null \
@@ -39,25 +39,46 @@ struct vk_render_context {
 
 #define vk_render_context_null \
 (struct vk_render_context) { \
-    .m_device_context    = vk_device_context_null, \
     .m_command_context   = vk_command_context_null, \
     .m_graphics_pipeline = vk_graphics_pipeline_null, \
     .m_swapchain         = vk_swapchain_null, \
     .m_surface           = VK_NULL_HANDLE, \
-    .m_framebuffers      = null_dynarray(VkFrameBuffer) \
+    .m_framebuffers      = null_dynarray(VkFramebuffer) \
 }
 
 groubiks_result_t
-vk_command_context_create(struct vk_command_context* pCommandContext);
+vk_render_context_create(struct vk_render_context* pRenderContext,
+    struct vk_device_context* pDeviceContext,
+    struct vk_context* pContext
+);
 
 void
-free_vk_command_context(struct vk_command_context* pCommandContext);
+free_vk_render_context(struct vk_render_context* pRenderContext,
+    struct vk_device_context* pDeviceContext,
+    struct vk_context* pContext
+);
 
 groubiks_result_t
-vk_render_context_create(struct vk_render_context* pRenderContext);
+vk_render_context_setup_framebuffers(struct vk_render_context* pRenderContext,
+    struct vk_device_context* pDeviceContext
+);
+
+groubiks_result_t
+vk_render_context_record_commandbuffer(struct vk_render_context* pRenderContext, u32 imageIdx);
+
+groubiks_result_t
+vk_render_context_draw(struct vk_render_context* pRenderContext,
+    struct vk_device_context* pDeviceContext
+);
+
+groubiks_result_t
+vk_command_context_create(struct vk_command_context* pCommandContext,
+    struct vk_device_context* pDeviceContext
+);
 
 void
-free_vk_render_context(struct vk_render_context* pRenderContext);
-
+free_vk_command_context(struct vk_command_context* pCommandContext, 
+    struct vk_device_context* pDeviceContext
+);
 
 #endif

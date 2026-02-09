@@ -23,6 +23,8 @@ declare_dynarray(VkPhysicalDevice, VkPhysicalDevice);
 struct vk_context {
     VkInstance                        m_instance;
     VkDebugUtilsMessengerEXT          m_debug_messenger;
+    GLFWwindow*                       m_window;
+    VkSurfaceKHR                      m_surface;
     struct dynarray(VkPhysicalDevice) m_physical_devices;
 };
 
@@ -30,16 +32,21 @@ struct vk_context {
 (struct vk_context) { \
     .m_instance         = VK_NULL_HANDLE,                 \
     .m_debug_messenger  = VK_NULL_HANDLE,                 \
+    .m_window           = NULL,                           \
     .m_physical_devices = null_dynarray(VkPhysicalDevice) \
 }
 
 groubiks_result_t 
 vk_context_create(struct vk_context* pVulkanContext, 
-    struct vk_extras* pExtras
+    struct vk_extras* pExtras,
+    GLFWwindow* pWindow
 );
 
 void 
 free_vk_context(struct vk_context* pVulkanContext);
+
+groubiks_result_t
+vk_context_setup_windowsurface(struct vk_context* pVulkanContext);
 
 groubiks_result_t 
 vk_context_setup_instance(struct vk_context* pVulkanContext,

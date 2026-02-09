@@ -16,6 +16,56 @@
 #include <groubiks/utility/common.h>
 
 void
+vk_fill_struct_presentinfo(VkPresentInfoKHR* pPresentInfo,
+    u32 waitSemCount, VkSemaphore* pWaitSems,
+    u32 swapChainCount, VkSwapchainKHR* pSwapChains,
+    u32* pImageIndices
+);
+
+void
+vk_fill_struct_submitinfo(VkSubmitInfo* pSubmitInfo,
+    u32 waitSemCount, VkSemaphore* pWaitSems, VkPipelineStageFlags* pWaitStages,
+    u32 sigSemCount, VkSemaphore* pSigSems,
+    u32 commandBufCount, VkCommandBuffer* pBufs
+);
+
+void
+vk_fill_struct_commandbuffer_begininfo(VkCommandBufferBeginInfo* pBeginInfo);
+
+void
+vk_fill_struct_renderpass_begininfo(VkRenderPassBeginInfo* pBeginInfo,
+    VkRenderPass renderPass,
+    VkFramebuffer frameBuf,
+    VkOffset2D offset, VkExtent2D extent,
+    u32 clearValueCount, VkClearValue* pClearValues
+);
+
+void
+vk_fill_struct_framebuffer_createinfo(VkFramebufferCreateInfo* pCreateInfo,
+    VkRenderPass renderPass,
+    u32 imageViewCount, VkImageView* pImageViews,
+    VkExtent2D extent
+);
+
+void
+vk_fill_struct_commandpool_createinfo(VkCommandPoolCreateInfo* pCreateInfo,
+    u32 graphicsQueueFamilyIdx
+);
+
+void
+vk_fill_struct_commandbuffer_allocinfo(VkCommandBufferAllocateInfo* pAllocInfo,
+    VkCommandPool cmdPool,
+    u32 bufferCount
+);
+
+void 
+vk_fill_struct_sem_createinfo(VkSemaphoreCreateInfo* pCreateInfo);
+
+void
+vk_fill_struct_fen_createinfo(VkFenceCreateInfo* pCreateInfo);
+
+
+void
 vk_fill_struct_instance_createinfo(VkInstanceCreateInfo* pCreateInfo,
     VkApplicationInfo* pAppInfo,
     const char*const* ppEnabledLayerNames,

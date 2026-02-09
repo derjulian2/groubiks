@@ -57,7 +57,7 @@ groubiks_result_t
 vk_create_shadermodule_from_glsl(struct vk_shadermodule* pShaderMod,
     const char* const srcPath,
     VkDevice device,
-    shaderc_compiler_t* pCompiler
+    shaderc_compiler_t pCompiler
 );
 
 void

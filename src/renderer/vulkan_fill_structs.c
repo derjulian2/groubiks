@@ -2,6 +2,112 @@
 #include <groubiks/renderer/vulkan_fill_structs.h>
 
 void
+vk_fill_struct_presentinfo(VkPresentInfoKHR* pPresentInfo,
+    u32 waitSemCount, VkSemaphore* pWaitSems,
+    u32 swapChainCount, VkSwapchainKHR* pSwapChains,
+    u32* pImageIndices)
+{
+    memzero(*pPresentInfo);
+    pPresentInfo->sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    pPresentInfo->waitSemaphoreCount = waitSemCount;
+    pPresentInfo->pWaitSemaphores = pWaitSems;
+    pPresentInfo->swapchainCount = swapChainCount;
+    pPresentInfo->pSwapchains = pSwapChains;
+    pPresentInfo->pImageIndices = pImageIndices;
+}
+
+void
+vk_fill_struct_submitinfo(VkSubmitInfo* pSubmitInfo,
+    u32 waitSemCount, VkSemaphore* pWaitSems, VkPipelineStageFlags* pWaitStages,
+    u32 sigSemCount, VkSemaphore* pSigSems,
+    u32 commandBufCount, VkCommandBuffer* pBufs)
+{
+    memzero(*pSubmitInfo);
+    pSubmitInfo->sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    pSubmitInfo->waitSemaphoreCount = waitSemCount;
+    pSubmitInfo->pWaitSemaphores = pWaitSems;
+    pSubmitInfo->pWaitDstStageMask = pWaitStages;
+    pSubmitInfo->commandBufferCount = commandBufCount;
+    pSubmitInfo->pCommandBuffers = pBufs;
+    pSubmitInfo->signalSemaphoreCount = sigSemCount;
+    pSubmitInfo->pSignalSemaphores = pSigSems;
+}
+
+void
+vk_fill_struct_commandbuffer_begininfo(VkCommandBufferBeginInfo* pBeginInfo) {
+    memzero(*pBeginInfo);
+    pBeginInfo->sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+}
+
+void
+vk_fill_struct_renderpass_begininfo(VkRenderPassBeginInfo* pBeginInfo,
+    VkRenderPass renderPass,
+    VkFramebuffer frameBuf,
+    VkOffset2D offset, VkExtent2D extent,
+    u32 clearValueCount, VkClearValue* pClearValues)
+{
+    memzero(*pBeginInfo);
+    pBeginInfo->sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    pBeginInfo->renderPass = renderPass;
+    pBeginInfo->framebuffer = frameBuf;
+    pBeginInfo->renderArea.offset = offset;
+    pBeginInfo->renderArea.extent = extent;
+    pBeginInfo->clearValueCount = clearValueCount;
+    pBeginInfo->pClearValues = pClearValues;
+}
+
+void
+vk_fill_struct_framebuffer_createinfo(VkFramebufferCreateInfo* pCreateInfo,
+    VkRenderPass renderPass,
+    u32 imageViewCount, VkImageView* pImageViews,
+    VkExtent2D extent)
+{
+    memzero(*pCreateInfo);
+    pCreateInfo->sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    pCreateInfo->renderPass = renderPass;
+    pCreateInfo->attachmentCount = imageViewCount;
+    pCreateInfo->pAttachments = pImageViews;
+    pCreateInfo->width = extent.width;
+    pCreateInfo->height = extent.height;
+    pCreateInfo->layers = 1;
+}
+
+void
+vk_fill_struct_commandpool_createinfo(VkCommandPoolCreateInfo* pCreateInfo,
+    u32 graphicsQueueFamilyIdx)
+{
+    memzero(*pCreateInfo);
+    pCreateInfo->sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    pCreateInfo->flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    pCreateInfo->queueFamilyIndex = graphicsQueueFamilyIdx;
+}
+
+void
+vk_fill_struct_commandbuffer_allocinfo(VkCommandBufferAllocateInfo* pAllocInfo,
+    VkCommandPool cmdPool,
+    u32 bufferCount)
+{
+    memzero(*pAllocInfo);
+    pAllocInfo->sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    pAllocInfo->commandPool = cmdPool;
+    pAllocInfo->level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    pAllocInfo->commandBufferCount = bufferCount;
+}
+
+void 
+vk_fill_struct_sem_createinfo(VkSemaphoreCreateInfo* pCreateInfo) {
+    memzero(*pCreateInfo);
+    pCreateInfo->sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+}
+
+void
+vk_fill_struct_fen_createinfo(VkFenceCreateInfo* pCreateInfo) {
+    memzero(*pCreateInfo);
+    pCreateInfo->sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    pCreateInfo->flags = VK_FENCE_CREATE_SIGNALED_BIT;
+}
+
+void
 vk_fill_struct_instance_createinfo(VkInstanceCreateInfo* pCreateInfo,
     VkApplicationInfo* pAppInfo,
     const char*const* ppEnabledLayerNames,

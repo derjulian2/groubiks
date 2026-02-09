@@ -68,7 +68,7 @@ vk_device_context_get_qfis(struct vk_device_context* pDeviceContext,
         NULL
     );
     check(queueFamilyCount != 0, err = GROUBIKS_VULKAN_ERROR);
-    dynarray_reserve(VkQFamilyProps, 
+    dynarray_resize(VkQFamilyProps, 
         &queueFamilyProps,
         queueFamilyCount, 
         &dynarrayErr
@@ -136,11 +136,7 @@ vk_device_context_setup_logical_device(struct vk_device_context* pDeviceContext,
     check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
 
     /* setup createinfos */
-    queueCreateInfos = make_dynarray(VkDeviceQCreateInfo, 
-        NULL, 
-        uniqueQueueIndices.size, 
-        &dynarrayErr
-    );
+    dynarray_resize(VkDeviceQCreateInfo, &queueCreateInfos, uniqueQueueIndices.size, &dynarrayErr);
     check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
 
     dynarray_for_each(u32, &uniqueQueueIndices, qIdx) {
@@ -155,10 +151,10 @@ vk_device_context_setup_logical_device(struct vk_device_context* pDeviceContext,
     err = vk_extras_match_device(pExtras, pDeviceContext->m_physical_device);
     check(err == GROUBIKS_SUCCESS);
 
+    vkGetPhysicalDeviceFeatures(pDeviceContext->m_physical_device, &deviceFeatures);
     vk_fill_struct_device_createinfo(&deviceCreateInfo, 
         &deviceFeatures, 
-        queueCreateInfos.data, 
-        queueCreateInfos.size, 
+        queueCreateInfos.data, queueCreateInfos.size, 
         (const char* const*)pExtras->m_validationlayers.data, 
         pExtras->m_validationlayers.size, 
         (const char* const*)pExtras->m_extensions.data, 

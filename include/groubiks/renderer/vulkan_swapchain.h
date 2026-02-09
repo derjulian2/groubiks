@@ -37,7 +37,7 @@ struct vk_swapchain {
     struct dynarray(VkImageView) m_imageviews;
 };
 
-inline VkSurfaceCapabilitiesKHR 
+static inline VkSurfaceCapabilitiesKHR 
 _VkSurfaceCapabilitiesKHR_null() {
     VkSurfaceCapabilitiesKHR tmp;
     memzero(tmp);
@@ -45,7 +45,7 @@ _VkSurfaceCapabilitiesKHR_null() {
 }
 #define VkSurfaceCapabilitiesKHR_null _VkSurfaceCapabilitiesKHR_null()
 
-inline VkExtent2D 
+static inline VkExtent2D 
 _VkExtent2D_null() {
     VkExtent2D tmp;
     memzero(tmp);
@@ -53,7 +53,7 @@ _VkExtent2D_null() {
 }
 #define VkExtent2D_null _VkExtent2D_null()
 
-inline VkSurfaceFormatKHR
+static inline VkSurfaceFormatKHR
 _VkSurfaceFormatKHR_null() {
     VkSurfaceFormatKHR tmp;
     memzero(tmp);
@@ -73,7 +73,7 @@ _VkSurfaceFormatKHR_null() {
     .m_swapchain  = VK_NULL_HANDLE, \
     .m_extent     = VkExtent2D_null, \
     .m_format     = VkSurfaceFormatKHR_null, \
-    .m_mode       = 0, \
+    .m_mode       = (VkPresentModeKHR)0, \
     .m_images     = null_dynarray(VkImage), \
     .m_imageviews = null_dynarray(VkImageView) \
 }
@@ -82,11 +82,11 @@ groubiks_result_t
 vk_swapchain_create(struct vk_swapchain* pSwapChain,
     struct vk_device_context* pDeviceContext,
     VkSurfaceKHR surface,
-    GLFWwindow* pWin
+    GLFWwindow* pWindow
 );
 
 void
-vk_swapchain_free(struct vk_swapchain* pSwapChain,
+free_vk_swapchain(struct vk_swapchain* pSwapChain,
     VkDevice device
 );
 
@@ -110,7 +110,8 @@ vk_swapchain_details_create(struct vk_swapchain_details* pSwapChainDetails,
 
 groubiks_result_t 
 vk_swapchain_pick_details(struct vk_swapchain* pSwapChain,
-    struct vk_swapchain_details* pSwapChainDetails
+    struct vk_swapchain_details* pSwapChainDetails,
+    GLFWwindow* pWindow
 );
 
 groubiks_result_t 
@@ -120,7 +121,8 @@ vk_swapchain_pick_surface_format(struct vk_swapchain* pSwapChain,
 
 groubiks_result_t
 vk_swapchain_pick_extent(struct vk_swapchain* pSwapChain,
-    struct vk_swapchain_details* pSwapChainDetails
+    struct vk_swapchain_details* pSwapChainDetails,
+    GLFWwindow* pWindow
 );
 
 groubiks_result_t 
@@ -136,7 +138,7 @@ vk_swapchain_get_image_handles(struct vk_swapchain* pSwapChain,
 
 groubiks_result_t
 vk_swapchain_setup_imageviews(struct vk_swapchain* pSwapChain,
-    VkDevice ldevice
+    VkDevice device
 );
 
 #endif

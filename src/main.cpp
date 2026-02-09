@@ -6,16 +6,11 @@ int main(int argc, char** argv) {
     groubiks::application app;
 
     if (app.initialize() != GROUBIKS_SUCCESS) {
-        std::cerr << "failed to initialize Groubiks. check log-files for further information.\n";
-        return GROUBIKS_ERROR;
+        std::cerr << "groubiks failed to initialize" << std::endl;
+        return -1;
     }
-
-    if (app.execute() != GROUBIKS_SUCCESS) {
-        std::cerr << "Groubiks encountered a runtime-error. check log-files for further information\n";
-        return GROUBIKS_ERROR;
-    }
-
+    app.execute();
     app.cleanup();
 
-    return GROUBIKS_SUCCESS;
+    return 0;
 }

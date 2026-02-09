@@ -36,6 +36,17 @@
 #define VK_PIPELINE_CREATE_SUCCESS_STR "created vulkan-graphics-pipeline"
 #define VK_PIPELINE_RENDERPASS_SETUP_SUCCESS_STR "setup renderpass"
 #define VK_SHADERMOD_SETUP_SUCCESS_STR "setup shadermodule"
+
+#define VK_SWAPCHAIN_CREATE_SUCCESS_STR "create vulkan-swapchain"
+#define VK_SWAPCHAIN_IMAGE_HANDLES_SUCCESS_FSTR "retrieved %d image-handles"
+#define VK_SWAPCHAIN_SURFACE_FMTS_SUCCESS_STR "retrieved surface-formats"
+#define VK_SWAPCHAIN_PRESENTMODES_SUCCESS_STR "retrieved presentmodes"
+#define VK_SWAPCHAIN_SURFACE_CAPS_SUCCESS_STR "retrieved surface-capabilities"
+#define VK_SWAPCAHIN_IMAGEVIEW_SUCCESS_FSTR "setup %d imageviews"
+
+#define VK_RENDER_CONTEXT_CREATE_SUCCESS_STR "setup render-context"
+#define VK_RENDER_CONTEXT_FRAMEBUF_SUCCESS_STR "setup framebuffers"
+#define VK_CMD_CONTEXT_CREATE_SUCCESS_STR "setup command-context"
 /**
  * --- error-log-strings ---
  */
@@ -48,5 +59,19 @@
 #define VK_PIPELINE_CREATE_FAIL_STR "failed to create vulkan-graphics-pipeline"
 #define VK_PIPELINE_RENDERPASS_SETUP_FAIL_STR "failed to setup renderpass"
 #define VK_SHADERMOD_SETUP_FAIL_STR "failed to setup shadermodule"
+
+#define VK_SWAPCHAIN_CREATE_FAIL_STR "failed to create vulkan-swapchain"
+#define VK_SWAPCHAIN_IMAGE_HANDLES_FAIL_STR "failed to retrieve image-handles"
+#define VK_SWAPCHAIN_SURFACE_FMTS_FAIL_STR "failed to retrieve surface-formats"
+#define VK_SWAPCHAIN_PRESENTMODES_FAIL_STR "failed to retrieve presentmodes"
+#define VK_SWAPCHAIN_SURFACE_CAPS_FAIL_STR "failed to retrieve surface-capabilites"
+#define VK_SWAPCHAIN_IMAGEVIEW_FAIL_STR "failed to setup imageviews"
+
+#define VK_RENDER_CONTEXT_CREATE_FAIL_STR "failed to create render-context"
+#define VK_RENDER_CONTEXT_FRAMEBUF_FAIL_STR "failed to setup framebuffers"
+#define VK_RENDER_CONTEXT_RECORD_FAIL_STR "failed to record commandbuffer"
+#define VK_RENDER_CONTEXT_DRAW_FAIL_STR "failed to execute drawing-command"
+#define VK_CMD_CONTEXT_CREATE_FAIL_STR "failed to create command-context"
+
 
 #endif

@@ -38,7 +38,7 @@ groubiks_result_t
 vk_create_shadermodule_from_glsl(struct vk_shadermodule* pShaderMod,
     const char* const srcPath,
     VkDevice device,
-    shaderc_compiler_t* pCompiler)
+    shaderc_compiler_t pCompiler)
 {
     groubiks_result_t err = GROUBIKS_SUCCESS;
     VkResult vkErr        = VK_SUCCESS;
@@ -49,12 +49,12 @@ vk_create_shadermodule_from_glsl(struct vk_shadermodule* pShaderMod,
     char* data = NULL; size_t size = 0;
 
     ioErr = read_file(srcPath, &data, &size);
-    check(ioErr != 0, err = GROUBIKS_IO_ERROR);
+    check(ioErr == 0, err = GROUBIKS_IO_ERROR);
 
-    comp_result = shaderc_compile_into_spv_assembly(*pCompiler, 
+    comp_result = shaderc_compile_into_spv(pCompiler, 
         data, size, 
         pShaderMod->m_shadertype, 
-        NULL, "main", NULL
+        srcPath, "main", NULL
     );
     check(shaderc_result_get_compilation_status(comp_result) == shaderc_compilation_status_success, err = GROUBIKS_SHADER_ERROR);
 
@@ -133,7 +133,8 @@ vk_graphics_pipeline_create(struct vk_graphics_pipeline* pPipeline,
     vkErr = vkCreatePipelineLayout(pDeviceContext->m_logical_device, &layoutCreateInfo, NULL, &pPipeline->m_layout);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
 
-    /* fill out many structs (i should probably group them together somehow, but it's very late and i wan't to sleep)*/
+    /* fill out many structs (i should probably group them together somehow, 
+       but it's very late and i wan't to sleep)*/
     dynarray_for_each(shadermodule, pShaderModules, mod) {
         dynarray_index_t idx = dynarray_index(pShaderModules, mod);
         switch (mod->m_shadertype) {

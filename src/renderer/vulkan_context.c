@@ -8,13 +8,18 @@ define_dynarray(VkPhysicalDevice, VkPhysicalDevice,
 
 groubiks_result_t 
 vk_context_create(struct vk_context* pVulkanContext, 
-    struct vk_extras* pExtras)
+    struct vk_extras* pExtras,
+    GLFWwindow* pWindow)
 {
     groubiks_result_t err = GROUBIKS_SUCCESS;
 
     *pVulkanContext = vk_context_null;
+    pVulkanContext->m_window = pWindow;
 
     err = vk_context_setup_instance(pVulkanContext, pExtras);
+    check(err == GROUBIKS_SUCCESS);
+
+    err = vk_context_setup_windowsurface(pVulkanContext);
     check(err == GROUBIKS_SUCCESS);
 
     err = vk_context_setup_devices(pVulkanContext);
@@ -47,6 +52,27 @@ free_vk_context(struct vk_context* pVulkanContext)
     }
     if (pVulkanContext->m_instance != VK_NULL_HANDLE) {
         vkDestroyInstance(pVulkanContext->m_instance, NULL);
+    }
+}
+
+
+groubiks_result_t
+vk_context_setup_windowsurface(struct vk_context *pVulkanContext)
+{
+    VkResult vkErr = VK_SUCCESS;
+
+    vkErr = glfwCreateWindowSurface(pVulkanContext->m_instance, 
+        pVulkanContext->m_window, 
+        NULL,
+        &pVulkanContext->m_surface 
+    );
+    if (vkErr == VK_SUCCESS) {
+        log_info("setup windowsurface");
+        return GROUBIKS_SUCCESS;
+    }
+    else {
+        log_error("failed to setup windowsurface");
+        return GROUBIKS_VULKAN_ERROR;
     }
 }
 
@@ -117,7 +143,7 @@ vk_context_setup_devices(struct vk_context* pVulkanContext)
 
     vkErr = vkEnumeratePhysicalDevices(pVulkanContext->m_instance, &deviceCount, NULL);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
-    dynarray_reserve(VkPhysicalDevice, &pVulkanContext->m_physical_devices, deviceCount, &dynarrayErr);
+    dynarray_resize(VkPhysicalDevice, &pVulkanContext->m_physical_devices, deviceCount, &dynarrayErr);
     check(dynarrayErr == DYNARRAY_SUCCESS, err = GROUBIKS_BAD_ALLOC);
     vkErr = vkEnumeratePhysicalDevices(pVulkanContext->m_instance, &deviceCount, pVulkanContext->m_physical_devices.data);
     check(vkErr == VK_SUCCESS, err = GROUBIKS_VULKAN_ERROR);
@@ -136,113 +162,4 @@ vk_context_setup_devices(struct vk_context* pVulkanContext)
     )
 }
 
-VulkanDevices CreateVulkanDevices(VkInstance instance, const char** extensionNames, uint32_t numExtensionsNames) {
-    VulkanDevices dvcs = malloc(sizeof(VulkanDevices_t));
-    if (dvcs == NULL)
-    { return NULL; }
-    
-    memzero(*dvcs);
-    dvcs->m_device_extensions = make_extensions(
-            VK_VALIDATIONLAYERS, VK_NUM_VALIDATIONLAYERS,
-            extensionNames, numExtensionsNames);
-    if (dvcs->m_device_extensions == NULL ||
-        _setupAvailableDevices(dvcs, instance))
-    { goto error; }
-    log_info("successfully retrieved physical devices.");
-    return dvcs;
-error:
-    log_error("failed to retrieve physical devices.");
-    DestroyVulkanDevices(dvcs);
-    return NULL;
-}
 
-
-result_t _isDeviceSuitable(VkPhysicalDevice dvc) {
-    assert(dvc != NULL);
-    VkPhysicalDeviceProperties props;
-    VkPhysicalDeviceFeatures features;
-    
-    vkGetPhysicalDeviceProperties(dvc, &props);
-    vkGetPhysicalDeviceFeatures(dvc, &features);
-    return props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-}
-
-RenderContext VulkanContext_AddRenderContext(VulkanContext ctx, GLFWwindow* win) {
-    result_t err = 0;
-    RenderContext new_ctx = CreateRenderContext(win, ctx->m_instance, ctx->m_devices);
-    if (new_ctx == NULL)
-    { return NULL; }
-    vector_push_back(RenderContext, &ctx->m_render_ctxs, new_ctx, &err);
-    if (err != 0)
-    { goto error; }
-    return new_ctx;
-error:
-    DestroyRenderContext(new_ctx, ctx->m_instance);
-    return NULL;
-}
-
-result_t VulkanContext_Draw(VulkanContext ctx, RenderContext rndr_ctx) {
-    uint32_t imageIndex;
-    result_t err = 0;
-    VkResult vkerr = VK_SUCCESS;
-    VkSubmitInfo submitInfo;
-    VkPresentInfoKHR presentInfo;
-    VkSwapchainKHR swapChains[] = { rndr_ctx->m_swapchain->m_swapchain };
-    VkSemaphore waitSemaphores[] = { rndr_ctx->m_commands->m_imageavailable_sem };
-    VkSemaphore signalSemaphores[] = { rndr_ctx->m_commands->m_renderfinished_sem };
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-
-    vkerr = vkWaitForFences(rndr_ctx->m_device->m_logical_device, 1, &rndr_ctx->m_commands->m_inflight_fen, VK_TRUE, UINT64_MAX);
-    vkerr |= vkResetFences(rndr_ctx->m_device->m_logical_device, 1, &rndr_ctx->m_commands->m_inflight_fen);
-    if (vkerr != VK_SUCCESS)
-    { return -1; }
-
-    vkerr = vkAcquireNextImageKHR(
-        rndr_ctx->m_device->m_logical_device, 
-        rndr_ctx->m_swapchain->m_swapchain, 
-        UINT64_MAX, 
-        rndr_ctx->m_commands->m_imageavailable_sem, 
-        VK_NULL_HANDLE, 
-        &imageIndex);
-    if (vkerr != VK_SUCCESS)
-    { return -1; }
-
-    vkerr = vkResetCommandBuffer(rndr_ctx->m_commands->m_commandbuffer, 0);
-    if (vkerr != VK_SUCCESS)
-    { return -1; }
-    err = RecordCommandBuffer(rndr_ctx, rndr_ctx->m_commands->m_commandbuffer, imageIndex);
-    if (err != 0)
-    { return -1; }
-
-    memzero(submitInfo);
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &rndr_ctx->m_commands->m_commandbuffer;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-
-    vkerr = vkQueueSubmit(
-        rndr_ctx->m_device->m_queues.data[GRAPHICS_QUEUE_INDEX], 
-        1, 
-        &submitInfo, 
-        rndr_ctx->m_commands->m_inflight_fen);
-    if (vkerr != VK_SUCCESS)
-    { return -1; }
-
-    memzero(presentInfo);
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
-    
-    vkerr = vkQueuePresentKHR(rndr_ctx->m_device->m_queues.data[GRAPHICS_QUEUE_INDEX], &presentInfo);
-    if (vkerr != VK_SUCCESS)
-    { return -1; }
-
-    return 0;
-}

@@ -7,7 +7,7 @@ project(groubiks)
 
 find_package(glfw3 REQUIRED)
 
-option(BUILD_VULKAN_RENDERER OFF)
+option(BUILD_VULKAN_RENDERER ON)
 option(BUILD_TESTS OFF)
 
 set(BUILD_VULKAN_RENDERER ON)
@@ -31,7 +31,7 @@ cmake_path(ABSOLUTE_PATH GROUBIKS_ROOT_DIR NORMALIZE)
 set(GROUBIKS_LIBRARY_DEPENDENCIES
     glfw
     vulkan
-    libshaderc
+    shaderc
     dl
     pthread
     X11
