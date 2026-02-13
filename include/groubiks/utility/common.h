@@ -70,51 +70,37 @@ read_file(const char* path,
 /**
  * @brief classic macro-overload counting-magic.
  */
-#define _EXPAND_MACRO(x) x
-#define _SELECT_MACRO(_1, _2, name, ...) name
+#define __EXPAND_MACRO(x) x
+#define __SELECT_MACRO(_1, _2, name, ...) name
 /**
- * @brief custom exception-handling utility.
- *        (just some syntactic sugar to make error-handling less ugly)
- * @details some explanation for my unnecessary but fancy macros:
+ * @brief    custom exception-handling utility. requires C23 for '__VA_OPT__'.
+ *           (just some syntactic sugar to make error-handling less ugly)
+ * @details  some explanation for my unnecessary but fancy macros:
  *
- * check(cond) will jump to the except-block if cond evaluates to false.
- * check(cond, statement) will execute the statement and then jump 
- *                        to the except-block if cond evaluates to false.
- * except(retval, block) will define an except-block that will execute when an exception
- *                       occured and then immediately return retval.
- * except(block)  will define an except-block, that will execute when an exception occured and
- *                jump to the defined cleanup-block.
- * cleanup(block) will define a cleanup-block, that will execute after the except-block
- *                and also if no exceptions occur.
+ * except -- defines a code-block that should only be executed in the
+ *           case of an error. is jumped into by throw()-ing. control
+ *           will resume just after the except-block.
+ *
+ * throw  -- will jump into the except-block in the current function.
+ *           no-arg will do nothing but that, throw(<errvar>, <errval>)
+ *           will also assign <errvar> = <errval>.
  */
-#define __check_0(cond) \
-if (!(cond)) { \
-    goto __except; \
-} 
 
-#define __check_1(cond, block) \
-if (!(cond)) { \
-    block; \
-    goto __except; \
-} 
+#define except \
+if (0) __except:
 
-#define raise(block) block; goto __except;
-#define check(...) _EXPAND_MACRO(_SELECT_MACRO(__VA_ARGS__, __check_1, __check_0)(__VA_ARGS__))
+#define __throw_0 goto __except
+#define __throw_1(_1) static_assert(0, "invalid number of arguments")
+#define __throw_2(var, errval) { var = errval; __throw_0; }
 
-#define __except_0(block) \
-__except: \
-    block; \
-    goto __cleanup;
-
-#define __except_1(retval, block) \
-__except: \
-    block; \
-    return retval;
-
-#define except(...) _EXPAND_MACRO(_SELECT_MACRO(__VA_ARGS__, __except_1, __except_0)(__VA_ARGS__))
-
-#define cleanup(block) \
-__cleanup: \
-    block;
+#define throw(...) \
+__EXPAND_MACRO( \
+    __SELECT_MACRO( \
+        __VA_OPT__(__VA_ARGS__,) \
+        __throw_2, \
+        __throw_1, \
+        __throw_0  \
+        ) __VA_OPT__((__VA_ARGS__)) \
+)
 
 #endif

@@ -3,34 +3,40 @@
 #define GROUBIKS_HPP
 
 extern "C" {
-    #include <groubiks/renderer/vulkan_render_context.h>
+    #include <groubiks/renderer/vk_renderer.h>
 }
-
-#undef cleanup
-#undef raise
-#undef check
+/* undefs- for c++ compatibility */
+#undef make_optional
+#undef optional_t
+#undef nullopt
+#undef throw
 #undef except
+#undef log
+#undef logf
+#undef clamp
 
 #include <groubiks/cube.hpp>
 #include <groubiks/gui.hpp>
+#include <vector>
+#include <stdexcept>
 
 namespace groubiks {
 
-    using result_type = int;
+    using result_type = groubiks_result_t;
 
     class application {
-
+        GLFWwindow* window    = nullptr;
+        vk_renderer* renderer = nullptr;
     public:
-
         gui ui;
         cube main_cube;
 
-        GLFWwindow*       window = NULL;
-        vk_context        vulkan_context = vk_context_null;
-        vk_device_context device_context = vk_device_context_null;
-        vk_render_context render_context = vk_render_context_null;
+        application() { initialize(); }
+        application(const application&) = delete;
+        application(const application&&) = delete;
+        ~application() { cleanup(); }
 
-        groubiks_result_t initialize();
+        void initialize();
         void execute();
         void cleanup();
     };

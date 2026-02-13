@@ -19,7 +19,6 @@
 /**
  * default-macros
  */
-// #define GROUBIKS_LOGS_ALWAYS_FLUSH
 // #define GROUBIKS_NO_LOGS
 #define INFO_LOG    0
 #define DEBUG_LOG   1

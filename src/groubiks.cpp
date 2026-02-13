@@ -1,21 +1,34 @@
 
 #include <groubiks/groubiks.hpp>
 
-groubiks_result_t groubiks::application::initialize() {
-    groubiks_result_t err = GROUBIKS_SUCCESS;
-    dynarray_result_t dynarrayErr = DYNARRAY_SUCCESS;
-
-    VkPhysicalDevice physDevice = VK_NULL_HANDLE;
-    VkPhysicalDeviceProperties props;
-    VkPhysicalDeviceFeatures features;
-    vk_extras extras = vk_extras_null;
+void groubiks::application::initialize() {
+    vk_extras extras        = vk_extras_null;
     vk_extras device_extras = vk_extras_null;
+    u32 glfwExtCount = 0;
+    const char** ppGlfwExtensions = nullptr;
+    
+    /* convenience conversion-lambda */
+    auto to_cstr_vec = [](std::vector<std::string>& v) {
+        std::vector<char*> res;
+        res.reserve(v.size());
+        for (std::string& s : v) {
+            res.push_back(s.data());
+        }
+        return res;
+    };
+
+    std::vector<std::string> instValidationLayers;
+    std::vector<std::string> instExtensions;
+    // std::vector<std::string> deviceValidationLayers;
+    std::vector<std::string> deviceExtensions;
+
+    this->renderer = new vk_renderer();
 
     if (log_init() != 0) 
-    { return GROUBIKS_VULKAN_ERROR; }
+    { throw std::runtime_error("failed to initialize logging"); }
     
     if (glfwInit() != GLFW_TRUE)
-    { return GROUBIKS_GLFW_ERROR; }
+    { throw std::runtime_error("failed to initialize GLFW"); }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -24,74 +37,63 @@ groubiks_result_t groubiks::application::initialize() {
         DEFAULT_APPLICATION_NAME, 
         NULL, NULL
     );
-    if (this->window == NULL) {
-        return GROUBIKS_GLFW_ERROR;
+    if (this->window == NULL) 
+    { throw std::runtime_error("failed to initialize GLFW-window"); }
+
+    ppGlfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtCount);
+
+    instValidationLayers.reserve(VK_NUM_VALIDATIONLAYERS);
+    instExtensions.reserve(VK_NUM_EXTENSIONS + glfwExtCount);
+    for (const char* layer : VK_VALIDATIONLAYERS) {
+        instValidationLayers.push_back(layer);
+    }
+    for (const char* ext : VK_EXTENSIONS) {
+        instExtensions.push_back(ext);
+    }
+    for (u32 i = 0; i < glfwExtCount; ++i) {
+        instExtensions.push_back(ppGlfwExtensions[i]);
     }
 
-    extras.m_validationlayers = make_dynarray(str, 
-        VK_VALIDATIONLAYERS, 
-        VK_NUM_VALIDATIONLAYERS, 
-        &dynarrayErr
-    );
-    if (dynarrayErr != DYNARRAY_SUCCESS) { err = GROUBIKS_BAD_ALLOC; goto cleanup; }
-    extras.m_extensions = make_dynarray(str,
-        VK_EXTENSIONS,
-        VK_NUM_EXTENSIONS,
-        &dynarrayErr
-    );
-    if (dynarrayErr != DYNARRAY_SUCCESS) { err = GROUBIKS_BAD_ALLOC; goto cleanup; }
-    err = vk_extras_get_glfw(&extras);
-    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
-
-    device_extras.m_extensions = make_dynarray(str,
-        VK_DEVICE_EXTENSIONS,
-        VK_NUM_DEVICE_EXTENSIONS,
-        &dynarrayErr
-    );
-    if (dynarrayErr != DYNARRAY_SUCCESS) { err = GROUBIKS_BAD_ALLOC; goto cleanup; }
-
-    err = vk_context_create(&this->vulkan_context, &extras, this->window);
-    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
-
-    dynarray_for_each(VkPhysicalDevice, &this->vulkan_context.m_physical_devices, dvc) {
-        vkGetPhysicalDeviceProperties(*dvc, &props);
-        vkGetPhysicalDeviceFeatures(*dvc, &features);
-        if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-            physDevice = *dvc;
-        }
+    deviceExtensions.reserve(VK_NUM_DEVICE_EXTENSIONS);
+    for (const char* ext : VK_DEVICE_EXTENSIONS) {
+        deviceExtensions.push_back(ext);
     }
 
-    if (physDevice == VK_NULL_HANDLE) { err = GROUBIKS_VULKAN_ERROR; goto cleanup; }
-    err = vk_device_context_create(&this->device_context, 
-        physDevice,
-        this->vulkan_context.m_surface,
-        &device_extras
-    );
-    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
+    std::vector<char*> v1 = to_cstr_vec(instValidationLayers);
+    std::vector<char*> v2 = to_cstr_vec(instExtensions);
+    std::vector<char*> v3 = to_cstr_vec(deviceExtensions);
 
-    err = vk_render_context_create(&this->render_context, &this->device_context, &this->vulkan_context);
-    if (err != GROUBIKS_SUCCESS) { goto cleanup; }
-    log_info("initialization successful");
-cleanup:
-    free_dynarray(str, &extras.m_validationlayers);
-    free_dynarray(str, &extras.m_extensions);    
-    free_dynarray(str, &device_extras.m_validationlayers);
-    free_dynarray(str, &device_extras.m_extensions);
-    return err;
+    extras.m_validationlayers = assign_dynarray(str, 
+        v1.data(),
+        instValidationLayers.size()
+    );
+    extras.m_extensions = assign_dynarray(str, 
+        v2.data(), 
+        instExtensions.size()
+    );
+    device_extras.m_extensions = assign_dynarray(str, 
+        v3.data(), 
+        deviceExtensions.size()
+    );
+    if (vk_renderer_create(this->renderer, 
+        this->window, 
+        vk_physical_device_flags_is_discrete_gpu,
+        &extras, &device_extras
+    ) != GROUBIKS_SUCCESS) 
+    { throw std::runtime_error("failed to initialize vulkan-renderer"); }
 }
 
 void groubiks::application::execute() {
     while (!glfwWindowShouldClose(this->window)) {
         glfwPollEvents();
-        vk_render_context_draw(&this->render_context, &this->device_context);
+        if (vk_renderer_draw_triangles(this->renderer) != GROUBIKS_SUCCESS)
+        { throw std::runtime_error("renderer failed to draw"); }
     }
-    vkDeviceWaitIdle(this->device_context.m_logical_device);
 }
 
 void groubiks::application::cleanup() {
-    free_vk_render_context(&this->render_context, &this->device_context, &this->vulkan_context);
-    free_vk_device_context(&this->device_context);
-    free_vk_context(&this->vulkan_context);
+    free_vk_renderer(this->renderer);
+    delete this->renderer;
     glfwDestroyWindow(this->window);
     glfwTerminate();
     log_end();

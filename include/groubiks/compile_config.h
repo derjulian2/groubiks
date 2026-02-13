@@ -47,6 +47,9 @@
 #define VK_RENDER_CONTEXT_CREATE_SUCCESS_STR "setup render-context"
 #define VK_RENDER_CONTEXT_FRAMEBUF_SUCCESS_STR "setup framebuffers"
 #define VK_CMD_CONTEXT_CREATE_SUCCESS_STR "setup command-context"
+
+#define VK_RENDERER_CREATE_SUCCESS_STR "created vulkan-renderer"
+
 /**
  * --- error-log-strings ---
  */
@@ -73,5 +76,6 @@
 #define VK_RENDER_CONTEXT_DRAW_FAIL_STR "failed to execute drawing-command"
 #define VK_CMD_CONTEXT_CREATE_FAIL_STR "failed to create command-context"
 
+#define VK_RENDERER_CREATE_FAIL_STR "failed to create vulkan-renderer"
 
 #endif
