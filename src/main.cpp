@@ -1,15 +1,21 @@
 
-#include <iostream>
-#include <groubiks/groubiks.hpp>
+#include <Application.hpp>
+#include <Logging.hpp>
+#include <format>
 
 int main(int argc, char** argv) {
+
     try {
-        groubiks::application app;
+        ng::Application app;
+        app.initialize(
+            "/home/julian/Projects/neogroubiks/src/shaders/default.vert", 
+            "/home/julian/Projects/neogroubiks/src/shaders/default.frag"
+        );
         app.execute();
     }
     catch (const std::exception& e) {
-        std::cerr << "groubiks encountered an error: " << e.what() << std::endl;
-        return -1;
+        ng::log_error(std::format("neogroubiks encountered an error: {}", e.what()));
     }
+
     return 0;
 }

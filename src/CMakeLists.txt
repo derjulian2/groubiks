@@ -1,60 +1,48 @@
+
 cmake_minimum_required(VERSION 3.30.0)
 
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_C_STANDARD   23)
 
-project(groubiks)
+project(neogroubiks)
 
-find_package(glfw3 REQUIRED)
-
-option(BUILD_VULKAN_RENDERER ON)
-option(BUILD_TESTS OFF)
-
-set(BUILD_VULKAN_RENDERER ON)
-set(BUILD_TESTS OFF)
-
-set(GROUBIKS_SOURCES
-    "main.cpp"
-    "groubiks.cpp"
-)
-
-set(GROUBIKS_ROOT_DIR
+set(NEOGROUBIKS_ROOT_DIR
     ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(GROUBIKS_INCLUDE_DIR
+set(NEOGROUBIKS_INCLUDE_DIR
     "../include")
 
-cmake_path(ABSOLUTE_PATH GROUBIKS_INCLUDE_DIR NORMALIZE)
-cmake_path(GET GROUBIKS_ROOT_DIR PARENT_PATH GROUBIKS_ROOT_DIR)
-cmake_path(ABSOLUTE_PATH GROUBIKS_ROOT_DIR NORMALIZE)
+cmake_path(ABSOLUTE_PATH NEOGROUBIKS_INCLUDE_DIR NORMALIZE)
+cmake_path(GET NEOGROUBIKS_ROOT_DIR PARENT_PATH NEOGROUBIKS_ROOT_DIR)
+cmake_path(ABSOLUTE_PATH NEOGROUBIKS_ROOT_DIR NORMALIZE)
 
-set(GROUBIKS_LIBRARY_DEPENDENCIES
-    glfw
-    vulkan
-    shaderc
-    dl
-    pthread
-    X11
-    Xrandr
-    Xxf86vm
-    Xi)
+set(NEOGROUBIKS_SOURCES
+    "main.cpp"
+    "Application.cpp"
+    "glad.c"
 
-if (BUILD_VULKAN_RENDERER)
+    "Cube.cpp"
+    "Camera.cpp"
+    "Gl.cpp"
+    "Vertex.cpp"
+)
 
-    add_executable(groubiks
-        ${GROUBIKS_SOURCES})
+set(NEOGROUBIKS_DEPENDENCY_LIBS
+    "sfml-system"
+    "sfml-graphics"
+    "sfml-window"
+    "GL"
+)
 
-    add_subdirectory("renderer")
+add_executable(neogroubiks 
+    ${NEOGROUBIKS_SOURCES}
+)
 
-    target_compile_definitions(groubiks
-        PUBLIC GLFW_INCLUDE_VULKAN)
+add_subdirectory("imgui")
 
-    target_include_directories(groubiks
-        PUBLIC ${GROUBIKS_INCLUDE_DIR})
+target_include_directories(neogroubiks
+    PUBLIC ${NEOGROUBIKS_INCLUDE_DIR}
+)
 
-    target_link_libraries(groubiks
-        PUBLIC ${GROUBIKS_LIBRARY_DEPENDENCIES})
-
-endif()
-
-add_subdirectory("utility")
+target_link_libraries(neogroubiks
+    ${NEOGROUBIKS_DEPENDENCY_LIBS}
+)
