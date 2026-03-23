@@ -66,7 +66,6 @@ void ng::GlVertexBuffer::unbind() const {
     __unbind(GL_ARRAY_BUFFER);
 }
 
-
 void ng::GlIndexBuffer::bind() const {
     __bind(GL_ELEMENT_ARRAY_BUFFER);
 }

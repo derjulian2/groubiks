@@ -6,10 +6,9 @@
 int main(int argc, char** argv) {
 
     try {
-        ng::Application app;
-        app.initialize(
-            "/home/julian/Projects/neogroubiks/src/shaders/default.vert", 
-            "/home/julian/Projects/neogroubiks/src/shaders/default.frag"
+        ng::Application app(
+            NEOGROUBIKS_VERTEX_SHADER_PATH, 
+            NEOGROUBIKS_FRAGMENT_SHADER_PATH
         );
         app.execute();
     }

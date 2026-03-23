@@ -1,28 +1,30 @@
 
+#include "imgui/imgui-SFML.h"
 #include <Application.hpp>
+#include <SFML/Window/VideoMode.hpp>
+#include <stdexcept>
 
-
-ng::Application::~Application() {
-    shutdown();
-}
-
-
-void ng::Application::initialize(std::filesystem::path vertShaderPath,
-    std::filesystem::path fragShaderPath)
-{
-    if (!gladLoadGL()) 
-    { throw std::runtime_error("failed to load glad"); }
+ng::Window::Window(std::filesystem::path vertShaderPath,
+                   std::filesystem::path fragShaderPath,
+                   const u32 width,
+                   const u32 height,
+                   std::string_view title)
+    : m_renderwindow(sf::VideoMode(width, height), title.data()) {
+    if (!gladLoadGL())
+    { throw std::runtime_error("gladLoadGl() failed"); }
     if (!m_shader.loadFromFile(vertShaderPath, fragShaderPath))
     { throw std::runtime_error("failed to load shaders"); }
-    if (!ImGui::SFML::Init(m_window))
+    if (!ImGui::SFML::Init(m_renderwindow))
     { throw std::runtime_error("failed to load ImGui"); }
 }
 
+ng::Window::~Window() {
+    ImGui::SFML::Shutdown();
+}
 
 void ng::Application::execute() 
 {
-    ng::Cube cube;
-    cube.update();
+    m_cube.update();
     m_window.setActive();
     float Cpos[3] = { 0, 0, 0};
     float angle = 0.0;
@@ -48,15 +50,10 @@ void ng::Application::execute()
         sf::Shader::bind(&m_shader);
         m_camera.apply(m_shader);
         /* 3D-rendering of the cube */
-        m_window.draw(cube);
+        m_window.draw(m_cube);
         sf::Shader::bind(nullptr);
         /* render gui on top */
         ImGui::SFML::Render(m_window);
         m_window.display();
     }
-}
-
-
-void ng::Application::shutdown() {
-    ImGui::SFML::Shutdown();
 }

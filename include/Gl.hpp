@@ -46,7 +46,8 @@ namespace ng
         GlResource(const GlResource&) = delete;
         GlResource(GlResource&& other) { std::swap(this->m_gl_handle, other.m_gl_handle); }
 
-        GlHandle getNativeHandle() const { return m_gl_handle; }
+              GlHandle& getNativeHandle()       { return m_gl_handle; }
+        const GlHandle& getNativeHandle() const { return m_gl_handle; }
     };
 
     /**************************************************************
@@ -138,11 +139,13 @@ namespace ng
 
 }
 
+/*
+ * define template in header to avoid undefined-reference-errors.
+ */
 
 template <typename Layout>
     requires ng::GlVertexLayout<Layout>
 void ng::GlVertexBuffer::buffer(const Layout::vertex_type* pData, size_t vertexCount) const {
-    log_debug(std::format("buffering {} vertices", vertexCount));
     glBufferData(GL_ARRAY_BUFFER, 
         sizeof(typename Layout::vertex_type) * vertexCount, 
         pData, 
@@ -151,7 +154,6 @@ void ng::GlVertexBuffer::buffer(const Layout::vertex_type* pData, size_t vertexC
     std::array<GlVertexAttributeLayout, Layout::size> attributes = Layout::getLayout();
     for (u32 i = 0; i < attributes.size(); ++i) {
         GlVertexAttributeLayout& layout = attributes[i];
-        log_debug(std::format("attribute: {}, {}, {}", layout.count, layout.type, layout.offset));
         glVertexAttribPointer(i, 
             layout.count, 
             layout.type, 

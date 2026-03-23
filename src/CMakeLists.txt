@@ -37,6 +37,11 @@ add_executable(neogroubiks
     ${NEOGROUBIKS_SOURCES}
 )
 
+target_compile_definitions(neogroubiks PUBLIC
+    NEOGROUBIKS_VERTEX_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shaders/default.vert"
+    NEOGROUBIKS_FRAGMENT_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shaders/default.frag"    
+)
+
 add_subdirectory("imgui")
 
 target_include_directories(neogroubiks
