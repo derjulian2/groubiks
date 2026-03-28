@@ -39,14 +39,15 @@ namespace ng
 
     public:
 
-        Camera(const glm::vec3& pos = { 0.0, 0.0, 0.0 },
+        Camera(f32 aspect_ratio,
+               const glm::vec3& pos = { 0.0, 0.0, 0.0 },
                const glm::vec3& front = { 1.0, 0.0, 0.0 },
-               f32 fov_angle    = glm::radians(45.0),
-               f32 aspect_ratio = 640.0/480.0) 
-        : m_pos(pos), 
-          m_front(front), 
-          m_fov_angle(fov_angle), 
-          m_aspect_ratio(aspect_ratio) 
+               f32 fov_angle    = glm::radians(45.0)) 
+        : m_aspect_ratio(aspect_ratio)
+        , m_pos(pos)
+        , m_front(front)
+        , m_fov_angle(fov_angle)
+          
         { }
 
               glm::vec3& position()       { return m_pos; }

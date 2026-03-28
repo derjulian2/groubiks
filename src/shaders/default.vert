@@ -5,6 +5,7 @@ layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 texCoords;
 
 out vec4 vertexColor;
+out vec2 vertexTexCoords;
 
 uniform mat4 proj;
 uniform mat4 view;
@@ -12,4 +13,5 @@ uniform mat4 view;
 void main() {
     gl_Position = proj * view * vec4(inPos, 1.0);
     vertexColor = vec4(inColor, 1.0);
+    vertexTexCoords = texCoords;
 }

@@ -1,7 +1,6 @@
 
 #include <Application.hpp>
 #include <Logging.hpp>
-#include <format>
 
 int main(int argc, char** argv) {
 

@@ -10,6 +10,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <format>
 #include <string_view>
 #include <ctime>
 
@@ -62,25 +63,17 @@ inline void ng::log(std::string_view msg,
 }
 
 inline void ng::log_info(std::string_view msg) {
-#ifndef NGROUBIKS_SUPPRESS_LOGS
     ng::log(msg, "INFO");
-#endif
 }
 
 inline void ng::log_debug(std::string_view msg) {
-#ifndef NGROUBIKS_SUPPRESS_LOGS
     ng::log(msg, "DEBUG");
-#endif
 }
 
 inline void ng::log_error(std::string_view msg) {
-#ifndef NGROUBIKS_SUPPRESS_LOGS
     ng::log(msg, "ERROR", std::cerr);
-#endif
 }
 
 inline void ng::log_warning(std::string_view msg) {
-#ifndef NGROUBIKS_SUPPRESS_LOGS
     ng::log(msg, "WARNING", std::cerr);
-#endif  
 }

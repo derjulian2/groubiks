@@ -23,7 +23,6 @@ set(NEOGROUBIKS_SOURCES
     "Cube.cpp"
     "Camera.cpp"
     "Gl.cpp"
-    "Vertex.cpp"
 )
 
 set(NEOGROUBIKS_DEPENDENCY_LIBS
@@ -39,7 +38,8 @@ add_executable(neogroubiks
 
 target_compile_definitions(neogroubiks PUBLIC
     NEOGROUBIKS_VERTEX_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shaders/default.vert"
-    NEOGROUBIKS_FRAGMENT_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shaders/default.frag"    
+    NEOGROUBIKS_FRAGMENT_SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shaders/default.frag"
+    NEOGROUBIKS_WALL_TEX_PATH="${NEOGROUBIKS_ROOT_DIR}/assets/wall.jpg"
 )
 
 add_subdirectory("imgui")
