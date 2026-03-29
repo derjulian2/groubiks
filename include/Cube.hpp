@@ -29,7 +29,7 @@ namespace ng
         glm::vec3 m_center;
         glm::vec3 m_front;
 
-        std::array<ng::Vertex, 8> __calcVertices() const;
+        std::array<ng::Vertex, 8> _M_calc_vertices() const;
 
     public:
 
