@@ -1,7 +1,57 @@
 
 #include <Application.hpp>
 
-void ng::Gui::update() {
+
+ng::Window::Window(std::filesystem::path vertShaderPath,
+                   std::filesystem::path fragShaderPath,
+                   const u32 width, 
+                   const u32 height, 
+                   std::string_view title)
+    : sf::RenderWindow(sf::VideoMode(width, height),
+                       title.data(),
+                       sf::Style::Default,
+                       sf::ContextSettings(depth_buffer_bits, stencil_buffer_bits, antialiasing_level)) 
+{
+    setActive();
+    setVerticalSyncEnabled(true);
+    if (!gladLoadGL())
+    { throw std::runtime_error("glad failed to load"); }
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    if (!m_shader.loadFromFile(vertShaderPath, fragShaderPath))
+    { throw std::runtime_error("failed to load shaders"); }
+}
+
+
+ng::f32 ng::Window::aspect_ratio() const { 
+    sf::Vector2u sz = getSize(); 
+    return static_cast<f32>(sz.x) / static_cast<f32>(sz.y); 
+}
+
+
+
+ng::Gui::Gui(ng::Window& window,
+             ng::RubiksCube& cube,
+             ng::Camera& cam)
+    : m_window(window)
+    , m_cube(cube)
+    , m_camera(cam) 
+{ 
+    if (!ImGui::SFML::Init(window))
+    { throw std::runtime_error("failed to initialize GUI"); }
+}
+
+
+ng::Gui::~Gui()
+{ ImGui::SFML::Shutdown(); }
+
+
+void ng::Gui::pollEvents() 
+{ ImGui::SFML::ProcessEvent(m_window, m_window.m_event); }
+
+
+void ng::Gui::update() 
+{
     float angle = 0.f;
     ImGui::SFML::Update(m_window, m_window.m_clock.restart());
     ImGui::Begin("neogroubiks");
@@ -13,7 +63,22 @@ void ng::Gui::update() {
     ImGui::End();
 }
 
-void ng::Application::execute() 
+
+void ng::Gui::draw(sf::RenderTarget& target, 
+                   sf::RenderStates states) const
+{ ImGui::SFML::Render(target); }
+
+
+
+ng::App::App(std::filesystem::path vertShaderPath,
+             std::filesystem::path fragShaderPath)
+    : m_window(vertShaderPath, fragShaderPath) 
+    , m_camera(m_window.aspect_ratio())
+    , m_gui(m_window, m_cube, m_camera)
+{ }
+
+
+void ng::App::execute() 
 {
     sf::Texture tex;
     tex.loadFromFile(NEOGROUBIKS_WALL_TEX_PATH);

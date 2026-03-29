@@ -17,12 +17,12 @@ cmake_path(ABSOLUTE_PATH NEOGROUBIKS_ROOT_DIR NORMALIZE)
 
 set(NEOGROUBIKS_SOURCES
     "main.cpp"
-    "Application.cpp"
-    "glad.c"
+    # "Application.cpp"
+    # "glad.c"
 
-    "Cube.cpp"
-    "Camera.cpp"
-    "Gl.cpp"
+    # "Cube.cpp"
+    # "Camera.cpp"
+    # "Gl.cpp"
 )
 
 set(NEOGROUBIKS_DEPENDENCY_LIBS

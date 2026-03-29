@@ -27,6 +27,9 @@ namespace ng
         glm::vec2 tex;
     };
 
+    /*
+     * layout for automatic VAO-interface.
+     */
     struct VertexLayout 
     {
         using vertex_type            = ng::Vertex;

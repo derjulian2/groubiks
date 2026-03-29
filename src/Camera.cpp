@@ -1,8 +1,18 @@
 
 #include <Camera.hpp>
 
+ng::Camera::Camera(f32 aspect_ratio,
+                   const glm::vec3& pos,
+                   const glm::vec3& front,
+                   f32 fov_angle) 
+    : m_aspect_ratio(aspect_ratio)
+    , m_pos(pos)
+    , m_front(front)
+    , m_fov_angle(fov_angle)
+{ }
 
-void ng::Camera::__update() 
+
+void ng::Camera::_M_update() 
 {
     /* perspective-projection */
     glm::vec2 frustum = { 0.1f, 100.0f };
@@ -23,11 +33,27 @@ void ng::Camera::__update()
 }
 
 
+      glm::vec3& ng::Camera::position()       { return m_pos; }
+const glm::vec3& ng::Camera::position() const { return m_pos; }
+
+
+      glm::vec3& ng::Camera::front()       { return m_front; }
+const glm::vec3& ng::Camera::front() const { return m_front; }
+
+
+      ng::f32 ng::Camera::aspect_ratio()       { return m_aspect_ratio; }
+const ng::f32 ng::Camera::aspect_ratio() const { return m_aspect_ratio; }
+
+
+      ng::f32 ng::Camera::fov_angle()       { return m_fov_angle; }
+const ng::f32 ng::Camera::fov_angle() const { return m_fov_angle; }
+
+
 void ng::Camera::apply(sf::Shader& shader,
-            std::string_view projMatUniformName,
-            std::string_view viewMatUniformName)
+                       std::string_view projMatUniformName,
+                       std::string_view viewMatUniformName)
 {
-    __update();
-    shader.setUniform(projMatUniformName.data(), ng::convert(m_proj));
-    shader.setUniform(viewMatUniformName.data(), ng::convert(m_view));
+    _M_update();
+    shader.setUniform(projMatUniformName.data(), ng::matrix_cast<sf::Glsl::Mat4>(m_proj));
+    shader.setUniform(viewMatUniformName.data(), ng::matrix_cast<sf::Glsl::Mat4>(m_view));
 }

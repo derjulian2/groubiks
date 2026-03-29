@@ -5,7 +5,7 @@
 int main(int argc, char** argv) {
 
     try {
-        ng::Application app(
+        ng::App app(
             NEOGROUBIKS_VERTEX_SHADER_PATH, 
             NEOGROUBIKS_FRAGMENT_SHADER_PATH
         );

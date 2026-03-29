@@ -27,49 +27,39 @@ namespace ng
     {
     private:
     
-        glm::vec3 m_pos;
-        glm::vec3 m_front;
-        f32       m_aspect_ratio;
-        f32       m_fov_angle;
+      glm::vec3 m_pos;
+      glm::vec3 m_front;
+      f32       m_aspect_ratio;
+      f32       m_fov_angle;
 
-        glm::mat4 m_proj;
-        glm::mat4 m_view;
+      glm::mat4 m_proj;
+      glm::mat4 m_view;
 
-        void __update();
+      void _M_update();
 
     public:
 
-        Camera(f32 aspect_ratio,
-               const glm::vec3& pos = { 0.0, 0.0, 0.0 },
-               const glm::vec3& front = { 1.0, 0.0, 0.0 },
-               f32 fov_angle    = glm::radians(45.0)) 
-        : m_aspect_ratio(aspect_ratio)
-        , m_pos(pos)
-        , m_front(front)
-        , m_fov_angle(fov_angle)
-          
-        { }
+      Camera(f32 aspect_ratio,
+            const glm::vec3& pos = { 0.0, 0.0, 0.0 },
+            const glm::vec3& front = { 1.0, 0.0, 0.0 },
+            f32 fov_angle    = glm::radians(45.0));
 
-              glm::vec3& position()       { return m_pos; }
-        const glm::vec3& position() const { return m_pos; }
+            glm::vec3& position();    
+      const glm::vec3& position() const;
 
-              glm::vec3& front()       { return m_front; }
-        const glm::vec3& front() const { return m_front; }
+            glm::vec3& front();     
+      const glm::vec3& front() const;
 
-              f32 aspect_ratio()       { return m_aspect_ratio; }
-        const f32 aspect_ratio() const { return m_aspect_ratio; }
+            f32 aspect_ratio();    
+      const f32 aspect_ratio() const;
 
-              f32 fov_angle()       { return m_fov_angle; }
-        const f32 fov_angle() const { return m_fov_angle; }
+            f32 fov_angle();
+      const f32 fov_angle() const;
 
-        void apply(sf::Shader& shader,
-            std::string_view projMatUniformName = "proj",
-            std::string_view viewMatUniformName = "view"
-        );
+      void apply(sf::Shader& shader,
+                  std::string_view projMatUniformName = "proj",
+                  std::string_view viewMatUniformName = "view");
 
     };
 
-    inline sf::Glsl::Mat4 convert(const glm::mat4& m) {
-        return sf::Glsl::Mat4(&m[0][0]);
-    }
 }
